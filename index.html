@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas SRE | Incident Intelligence</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 900: '#312e81' },
+                        dark: { 900: '#0a0c10', 800: '#12151d', 700: '#1a1e2a', 600: '#242a3b', 950: '#050608' },
+                        glass: 'rgba(18, 21, 29, 0.75)'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- Marked.js (Pinned to v4.3.0 to prevent breaking changes with setOptions) & DOMPurify -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <style>
+        /* Modern Glassmorphism & SRE Theme */
+        body {
+            background-color: #0a0c10;
+            color: #e2e8f0;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+            overflow: hidden; 
+        }
+        
+        .glass-panel {
+            background: var(--tw-colors-glass, rgba(18, 21, 29, 0.75));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .glass-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .glass-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes pulse-border { 0%, 100% { border-color: rgba(99, 102, 241, 0.3); } 50% { border-color: rgba(99, 102, 241, 0.8); } }
+        .drag-active { animation: pulse-border 1.5s infinite; background: rgba(99, 102, 241, 0.05); }
+
+        /* Typography & Markdown */
+        .markdown-body { font-size: 0.95rem; line-height: 1.6; color: #cbd5e1; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { font-weight: 600; margin-top: 1.5em; margin-bottom: 0.75em; color: #f8fafc; }
+        .markdown-body p { margin-bottom: 1.25em; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1.25em; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1.25em; }
+        .markdown-body li { margin-bottom: 0.25em; }
+        .markdown-body strong { color: #f1f5f9; font-weight: 600; }
+        .markdown-body pre { background: #0d1117; padding: 1.25em; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1.25em; border: 1px solid rgba(255,255,255,0.05); }
+        .markdown-body code { font-family: 'Fira Code', monospace; font-size: 0.85em; }
+        .markdown-body p code, .markdown-body li code { background: rgba(255,255,255,0.08); padding: 0.2em 0.4em; border-radius: 0.25rem; color: #e2e8f0; }
+        .markdown-body blockquote { border-left: 4px solid #6366f1; padding-left: 1em; color: #94a3b8; margin-bottom: 1.25em; background: rgba(99, 102, 241, 0.05); padding: 0.75em 1em; border-radius: 0 0.5rem 0.5rem 0; }
+        
+        /* Citations */
+        .citation-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.35rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none !important;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .citation-chip:hover {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+
+        /* PDF.js Text Layer */
+        .textLayer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; line-height: 1.0; }
+        .textLayer > span { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+        .textLayer > span.highlighted { background-color: rgba(250, 204, 21, 0.4); border-bottom: 2px solid rgba(250, 204, 21, 0.8); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="flex h-screen w-full font-sans antialiased text-gray-200 flex-col md:flex-row overflow-hidden">
+
+    <!-- Global Demo Banner -->
+    <div id="demo-banner" class="absolute top-0 left-0 w-full z-[60] bg-brand-600/95 backdrop-blur text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between animate-slide-down border-b border-brand-500 shadow-lg hidden">
+        <div class="flex items-center gap-3 text-sm font-medium mb-2 md:mb-0">
+            <i class="fa-solid fa-flask text-brand-200"></i>
+            Demo Mode Available: Preloaded SRE Knowledge Base Ready
+        </div>
+        <div class="flex gap-2">
+            <button onclick="app.demo.load()" id="btn-load-demo-banner" class="px-4 py-1.5 bg-white text-brand-900 text-xs font-bold rounded hover:bg-brand-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-white/50">
+                Load Demo Knowledge Base
+            </button>
+            <button onclick="document.getElementById('demo-banner').classList.add('hidden')" class="px-2 py-1.5 text-brand-200 hover:text-white transition-colors focus:outline-none">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="flex flex-1 w-full h-full relative overflow-hidden pt-12 md:pt-0"> <!-- padding for banner -->
+
+        <!-- Left Sidebar (Nav) -->
+        <aside class="w-full md:w-64 glass-panel flex flex-col h-auto md:h-full border-b md:border-b-0 md:border-r border-white/5 z-40 transition-all duration-300 shrink-0" id="sidebar">
+            <div class="p-4 md:p-5 flex items-center gap-3 border-b border-white/5 bg-dark-900/50 md:bg-transparent">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-400/30 shrink-0">
+                    <i class="fa-solid fa-shield-halved text-white text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <h1 class="font-bold text-base tracking-tight text-white leading-none">Atlas SRE</h1>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mt-1">Incident Intelligence</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-x-auto md:overflow-y-auto py-2 md:py-4 px-3 flex md:flex-col gap-2 md:gap-1">
+                <div class="hidden md:block text-[10px] font-semibold text-gray-500 mb-2 px-2 mt-2 uppercase tracking-wider">Workspace</div>
+                <button onclick="app.nav.switchView('chat')" class="nav-btn w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-lg text-sm text-white bg-white/5 transition-colors font-medium whitespace-nowrap" data-target="chat">
+                    <i class="fa-solid fa-bolt w-4 md:w-5 text-center text-brand-400"></i> AI Investigator
+                </button>
+                <button onclick="app.nav.switchView('documents')" class="nav-btn w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap" data-target="documents">
+                    <i class="fa-solid fa-file-lines w-4 md:w-5 text-center"></i> Knowledge Base
+                    <span id="nav-doc-count" class="ml-auto bg-dark-700 text-gray-300 border border-white/10 text-[10px] px-2 py-0.5 rounded-full">0</span>
+                </button>
+
+                <div class="hidden md:block text-[10px] font-semibold text-gray-500 mb-2 px-2 mt-6 uppercase tracking-wider">System</div>
+                <button onclick="app.ui.openSettings()" class="w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap md:mt-0 mt-auto ml-auto md:ml-0">
+                    <i class="fa-solid fa-sliders w-4 md:w-5 text-center"></i> Settings
+                </button>
+            </nav>
+            
+            <!-- Status Indicator -->
+            <div class="hidden md:block p-4 border-t border-white/5 bg-dark-800/50">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-400 font-semibold uppercase tracking-wider text-[9px]">Engine Status</span>
+                    <div class="flex items-center gap-1.5" id="mode-indicator">
+                        <!-- Injected by JS based on Mode -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Content Area -->
+        <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-dark-900/50" id="main-content">
+            
+            <!-- View: Chat -->
+            <section id="view-chat" class="view-section flex flex-col h-full absolute inset-0"> 
+                <header class="h-12 md:h-14 glass-panel border-b border-white/5 flex items-center justify-between px-4 md:px-6 z-10 shrink-0 mt-12 md:mt-0"> 
+                    <h2 class="font-semibold text-gray-200 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-robot text-brand-400"></i> Incident Copilot
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="app.chat.clearHistory()" class="glass-button text-xs px-3 py-1.5 rounded-md text-gray-400 hover:text-white flex items-center gap-2 focus:outline-none">
+                            <i class="fa-solid fa-eraser"></i> Clear Chat
+                        </button>
+                    </div>
+                </header>
+                
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth relative z-0">
+                    <!-- Chat messages go here -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="w-full p-4 shrink-0 bg-dark-900 border-t border-white/5 relative z-10">
+                    <div class="max-w-4xl mx-auto relative group">
+                        
+                        <!-- Loading Indicator -->
+                        <div id="chat-loading" class="hidden absolute -top-14 left-0 text-xs text-brand-400 flex items-center gap-2 bg-dark-800/90 px-3 py-1.5 rounded-full border border-brand-500/20 backdrop-blur shadow-lg animate-fade-in z-20">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> 
+                            <span id="chat-loading-text">Analyzing context & generating response...</span>
+                        </div>
+
+                        <div class="relative flex items-end glass-panel rounded-xl shadow-xl border border-white/10 focus-within:border-brand-500/50 transition-colors bg-dark-800/90 z-10">
+                            <textarea id="chat-input" rows="1" class="w-full bg-transparent text-gray-100 rounded-xl pl-4 pr-12 py-3.5 focus:outline-none resize-none placeholder-gray-500 text-sm max-h-[150px] overflow-y-auto" placeholder="Ask about recent incidents, root causes, or general system architecture..."></textarea>
+                            <button id="chat-send" class="absolute right-2 bottom-2 w-9 h-9 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400">
+                                <i class="fa-solid fa-paper-plane text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2 text-[10px] text-gray-500" id="chat-footer-note">
+                        <i class="fa-solid fa-shield-check mr-1 text-green-500/70"></i> Answers prioritize local knowledge base context when relevant.
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Documents (Knowledge Base) -->
+            <section id="view-documents" class="view-section hidden h-full absolute inset-0 flex flex-col p-4 md:p-6 overflow-y-auto mt-12 md:mt-0">
+                <div class="max-w-5xl mx-auto w-full space-y-6 pb-10">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-4 gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-white mb-1">Knowledge Base</h2>
+                            <p class="text-sm text-gray-400">Local repository of incidents, architectures, and RCAs.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 md:gap-3">
+                            <button onclick="app.demo.load()" id="btn-load-demo-kb" class="glass-button px-4 py-2 rounded-lg text-sm text-brand-300 hover:text-brand-200 flex items-center gap-2 font-medium bg-brand-900/20 border-brand-500/30 focus:outline-none">
+                                <i class="fa-solid fa-flask"></i> Load Demo Data
+                            </button>
+                            <button onclick="app.kb.clearAll()" class="glass-button px-4 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 flex items-center gap-2 focus:outline-none">
+                                <i class="fa-solid fa-trash-can"></i> Clear Database
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="glass-panel p-4 rounded-xl border border-white/5">
+                            <div class="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Total Documents</div>
+                            <div class="text-2xl font-light text-white" id="metric-docs">0</div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border border-white/5">
+                            <div class="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Knowledge Chunks</div>
+                            <div class="text-2xl font-light text-white" id="metric-chunks">0</div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border border-white/5">
+                            <div class="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Search Engine Status</div>
+                            <div class="text-sm font-medium text-green-400 mt-2 flex items-center gap-2">
+                                <i class="fa-solid fa-check-circle"></i> Local Lexical Indexed
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Area -->
+                    <div id="drop-zone" class="w-full glass-panel border-2 border-dashed border-gray-700/50 rounded-xl p-8 text-center transition-all cursor-pointer hover:border-brand-500/50 hover:bg-white/[0.02] mt-4">
+                        <input type="file" id="file-input" multiple accept="application/pdf" class="hidden">
+                        <div class="w-14 h-14 mx-auto bg-dark-800 border border-white/10 text-gray-400 rounded-full flex items-center justify-center text-xl mb-4 shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h3 class="text-base font-medium text-gray-200 mb-1">Upload Engineering Documents</h3>
+                        <p class="text-xs text-gray-500 mb-4">Drag & drop PDF files here (Postmortems, RCAs, Architecture diagrams)</p>
+                        <button onclick="document.getElementById('file-input').click()" class="bg-dark-700 hover:bg-dark-600 border border-white/10 text-gray-200 px-5 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-white/20">
+                            Browse Files
+                        </button>
+                    </div>
+
+                    <!-- Processing Status -->
+                    <div id="upload-status" class="hidden glass-panel p-4 rounded-xl border-l-4 border-brand-500 bg-dark-800 animate-fade-in">
+                        <div class="flex justify-between text-sm text-white mb-2">
+                            <span id="status-text" class="font-medium text-gray-200">Processing...</span>
+                            <span id="status-percent" class="text-brand-400 font-mono text-xs">0%</span>
+                        </div>
+                        <div class="w-full bg-dark-950 rounded-full h-1.5 overflow-hidden border border-white/5">
+                            <div id="status-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Document List & Search -->
+                    <div class="glass-panel rounded-xl overflow-hidden border border-white/5 flex flex-col h-[500px]">
+                        
+                        <!-- Search & Filter Bar -->
+                        <div class="p-3 border-b border-white/5 bg-dark-800/50 flex flex-col md:flex-row gap-3 shrink-0">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm"></i>
+                                <input type="text" id="kb-search" placeholder="Search across all documents and pages..." class="w-full bg-dark-950/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
+                            </div>
+                            <select id="kb-filter" class="bg-dark-950/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500 transition-colors appearance-none cursor-pointer min-w-[150px]">
+                                <option value="all">All Categories</option>
+                                <option value="incident">Incident</option>
+                                <option value="architecture">Architecture</option>
+                                <option value="observability">Observability</option>
+                                <option value="foundation">Foundation</option>
+                                <option value="User Document">User Document</option>
+                            </select>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto relative bg-dark-900/30">
+                            <!-- Search Results List -->
+                            <div id="search-results-list" class="hidden divide-y divide-white/5">
+                                <!-- Global search results injected here -->
+                            </div>
+                            
+                            <!-- Document List -->
+                            <div id="document-list" class="divide-y divide-white/5">
+                                <!-- Items injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Right Sidebar: Evidence/Sources Panel (NotebookLM Style) -->
+        <aside id="sources-panel" class="w-80 glass-panel border-l border-white/5 z-30 transition-transform duration-300 transform translate-x-full absolute right-0 top-0 h-full flex flex-col bg-dark-900 shadow-2xl">
+            <header class="h-12 md:h-14 border-b border-white/5 flex items-center justify-between px-4 shrink-0 bg-dark-800/50">
+                <h2 class="font-semibold text-gray-200 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-brand-400"></i> Referenced Sources
+                </h2>
+                <button onclick="app.sources.close()" class="text-gray-400 hover:text-white transition-colors focus:outline-none p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </header>
+            <div id="sources-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Sources populated dynamically -->
+            </div>
+        </aside>
+
+    </div> <!-- End Main App Container -->
+
+    <!-- PDF Document Viewer Modal -->
+    <div id="doc-viewer-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] hidden transition-opacity opacity-0" onclick="app.viewer.close()"></div>
+    <aside id="doc-viewer" class="fixed inset-y-4 inset-x-4 md:inset-y-6 md:inset-x-12 glass-panel z-[90] transform translate-y-[120%] transition-transform duration-300 ease-out flex flex-col border border-white/10 shadow-2xl bg-dark-900 rounded-xl overflow-hidden">
+        
+        <!-- Viewer Header -->
+        <header class="p-3 md:p-4 border-b border-white/10 flex justify-between items-center bg-dark-800/90 shrink-0">
+            <div class="flex items-center gap-3 overflow-hidden flex-1">
+                <div class="hidden md:flex flex-col items-center justify-center w-10 h-10 bg-brand-500/10 rounded-lg text-brand-400 border border-brand-500/20 shrink-0">
+                    <i class="fa-solid fa-file-pdf text-lg"></i>
+                </div>
+                <div class="flex flex-col overflow-hidden">
+                    <div class="flex items-center gap-2 mb-0.5">
+                        <span id="viewer-category" class="text-[9px] bg-brand-500/20 border border-brand-500/30 px-2 py-0.5 rounded text-brand-300 uppercase tracking-wide font-bold">Category</span>
+                        <span id="viewer-mode-badge" class="text-[9px] bg-gray-700 border border-gray-600 px-2 py-0.5 rounded text-gray-300 uppercase tracking-wide">Mode</span>
+                    </div>
+                    <h2 id="viewer-title" class="text-sm md:text-base font-bold text-white truncate">Document Title</h2>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-1 md:gap-3 shrink-0 ml-4">
+                <!-- PDF Controls -->
+                <div id="pdf-toolbar" class="hidden flex items-center bg-dark-950 border border-white/10 rounded-lg p-1 shadow-inner">
+                    <button onclick="app.viewer.zoomOut()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Zoom Out"><i class="fa-solid fa-minus text-xs"></i></button>
+                    <div class="px-2 text-xs font-mono text-gray-300 min-w-[3rem] text-center select-none" id="viewer-zoom-level">100%</div>
+                    <button onclick="app.viewer.zoomIn()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Zoom In"><i class="fa-solid fa-plus text-xs"></i></button>
+                </div>
+                
+                <button onclick="app.viewer.close()" class="w-10 h-10 rounded-lg text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-400 transition-colors focus:outline-none flex items-center justify-center border border-transparent hover:border-red-500/30">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Continuous Scroll Progress -->
+        <div id="pdf-scroll-indicator" class="hidden h-1 bg-dark-800 shrink-0 w-full relative">
+            <div id="pdf-scroll-bar" class="absolute top-0 left-0 h-full bg-brand-500 transition-all duration-150 w-0"></div>
+        </div>
+
+        <!-- Viewer Body -->
+        <div id="viewer-body" class="flex-1 overflow-y-auto bg-[#0a0c10] relative flex flex-col items-center">
+            
+            <!-- Real PDF Render Container (Continuous Scroll) -->
+            <div id="pdf-scroll-container" class="hidden w-full flex flex-col items-center py-8 gap-6 min-h-full">
+                <!-- Pages injected dynamically by JS -->
+            </div>
+            
+            <!-- Text Fallback Container (Demo Docs) -->
+            <div id="text-fallback-container" class="hidden w-full max-w-4xl p-6 md:p-12 min-h-full">
+                <div id="viewer-content" class="markdown-body text-gray-300 bg-dark-800/30 p-8 rounded-xl border border-white/5 shadow-lg">
+                    <!-- Text content injected here -->
+                </div>
+            </div>
+
+            <!-- Loader Overlay inside viewer -->
+            <div id="viewer-loading" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center hidden">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-500 mb-4"></i>
+                <span class="text-gray-300 font-medium mt-4">Preparing Document...</span>
+            </div>
+        </div>
+        
+        <!-- Bottom Floating Page Indicator (PDF Only) -->
+        <div id="pdf-floating-page" class="hidden absolute bottom-6 left-1/2 transform -translate-x-1/2 glass-panel border border-white/10 rounded-full px-4 py-1.5 shadow-xl text-sm font-medium text-gray-300 z-50">
+            Page <span id="current-page-num" class="text-white">1</span> of <span id="total-page-num">1</span>
+        </div>
+    </aside>
+
+    <!-- Settings Modal -->
+    <div id="modal-settings" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center opacity-0 transition-opacity">
+        <div class="glass-panel w-full max-w-md mx-4 rounded-2xl p-6 shadow-2xl transform scale-95 transition-transform border border-white/10 bg-dark-900" id="modal-settings-content">
+            <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-brand-400"></i> Engine Settings
+                </h3>
+                <button onclick="app.ui.closeSettings()" class="text-gray-500 hover:text-white transition-colors focus:outline-none"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wide" for="setting-api-key">Gemini API Key</label>
+                    <input type="password" id="setting-api-key" placeholder="Enter API Key to enable Live Mode..." class="w-full bg-dark-950 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder-gray-600">
+                    <p class="text-[10px] text-brand-400 mt-1.5 flex items-start gap-1 leading-tight">
+                        <i class="fa-solid fa-unlock-keyhole mt-0.5"></i> 
+                        Required to use the Gemini API. If empty, the app falls back to Local Demo Mode.
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wide" for="setting-model">Live Mode AI Model</label>
+                    <select id="setting-model" class="w-full bg-dark-950 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none cursor-pointer">
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Default)</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 mb-1.5 uppercase tracking-wide" for="setting-top-k">Retrieval Top-K</label>
+                        <input type="number" id="setting-top-k" value="5" min="1" max="15" class="w-full bg-dark-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        <p class="text-[9px] text-gray-500 mt-1">Chunks evaluated</p>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 mb-1.5 uppercase tracking-wide" for="setting-temp">LLM Temp</label>
+                        <input type="number" step="0.1" id="setting-temp" value="0.2" min="0" max="1" class="w-full bg-dark-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        <p class="text-[9px] text-gray-500 mt-1">0.0 to 1.0</p>
+                    </div>
+                </div>
+
+                <div class="bg-brand-500/5 border border-brand-500/20 rounded-lg p-3 mt-4">
+                    <h4 class="text-xs font-semibold text-brand-300 mb-1">Architecture Info</h4>
+                    <p class="text-[10px] text-gray-400 leading-relaxed">Atlas SRE operates a strictly local lexical RAG pipeline. Document chunking, keyword overlap scoring, and TF-IDF style retrieval happen entirely within the browser.</p>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-white/5 flex justify-end gap-3">
+                <button onclick="app.ui.closeSettings()" class="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors font-medium focus:outline-none">Cancel</button>
+                <button onclick="app.ui.saveSettings()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-brand-500/20 focus:outline-none focus:ring-2 focus:ring-brand-400">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="modal-confirm" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center opacity-0 transition-opacity">
+        <div class="glass-panel w-full max-w-sm mx-4 rounded-2xl p-6 shadow-2xl transform scale-95 transition-transform border border-white/10 bg-dark-900" id="modal-confirm-content">
+            <div class="flex items-center gap-3 mb-4 text-red-400">
+                <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                <h3 class="text-lg font-bold text-white" id="modal-confirm-title">Confirm Action</h3>
+            </div>
+            <p class="text-sm text-gray-300 mb-6" id="modal-confirm-message">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modal-confirm-cancel" class="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors font-medium focus:outline-none">Cancel</button>
+                <button id="modal-confirm-ok" class="bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-400">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[110] flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- -------------------------------------------------------- -->
+    <!-- APPLICATION LOGIC & ARCHITECTURE                         -->
+    <!-- -------------------------------------------------------- -->
+    <script>
+        // Setup PDF.js worker securely
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // -----------------------------------------
+        // 0. SYSTEM ARCHITECTURE & MODES
+        // -----------------------------------------
+        const MODES = {
+            LIVE: "live",
+            DEMO: "demo",
+            FALLBACK: "fallback"
+        };
+
+        const VALID_MODELS = [
+            "gemini-1.5-flash",
+            "gemini-1.5-pro"
+        ];
+
+        function sanitizeModel(model) {
+            if (VALID_MODELS.includes(model)) return model;
+            return "gemini-1.5-flash"; // Strict Ultimate Fallback
+        }
+
+        let API_KEY = "";
+
+        const CONFIG = {
+            model: "gemini-1.5-flash", 
+            chunkSize: 250, 
+            chunkOverlap: 50,
+            topK: 5,
+            temperature: 0.2
+        };
+
+        const STATE = {
+            mode: MODES.DEMO,
+            documents: [], // { id, title, category, content, pdfData (Uint8Array optional), dateAdded, chunkCount }
+            chunks: [],    // { id, docId, docTitle, docCategory, text, pageNum }
+            chatHistory: [] 
+        };
+
+        let kbSearchQuery = "";
+        let kbCategoryFilter = "all";
+
+        // -----------------------------------------
+        // 1. EMBEDDED DEMO DATASET (18 Documents)
+        // -----------------------------------------
+        const demoDocuments = [
+            {
+                id: "doc_01",
+                title: "Google SRE Principles Overview",
+                category: "foundation",
+                content: "Site Reliability Engineering (SRE) is what happens when you ask a software engineer to design an operations team. Core principles include: 1) Embracing Risk - Extreme reliability comes at a cost, managing risk via Error Budgets is preferred. 2) Service Level Objectives - Defining SLIs, SLOs, and SLAs to measure system behavior. 3) Eliminating Toil - Capping operational work at 50% of an SRE's time; the rest must be spent on engineering projects to automate scaling and fix recurring issues. 4) Blameless Postmortems - Investigating incidents without pointing fingers, focusing instead on systemic causes and improvements to system resilience. Reliability is considered the most fundamental feature of any product."
+            },
+            {
+                id: "doc_02",
+                title: "SLO and Error Budget Model",
+                category: "foundation",
+                content: "Service Level Indicators (SLIs) are quantitative measures of service capability, such as request latency or error rate. Service Level Objectives (SLOs) are target values for SLIs, representing the reliability users expect. An Error Budget is the inverse of the SLO; it is the acceptable margin of unreliability. For example, a 99.9% SLO allows for 0.1% error budget (43 minutes of downtime per month). Error budgets align development and operations by dictating deployment velocity: if the error budget is depleted, feature releases must be halted, and all engineering efforts must be temporarily redirected to reliability tasks and technical debt reduction until the budget recovers."
+            },
+            {
+                id: "doc_03",
+                title: "Incident Severity Classification",
+                category: "foundation",
+                content: "Incidents are classified from SEV-1 (Critical) to SEV-5 (Minor). SEV-1 represents a complete outage affecting a majority of users, requiring an immediate all-hands response, spinning up a bridge call, and designating an Incident Commander (IC). SEV-2 represents severe degradation of a core feature, such as checkout failures, requiring urgent paging. SEV-3 means partial degradation or internal tool failures without customer impact. SEV-4 and SEV-5 are minor bugs or localized anomalies handled during business hours. Effective incident management requires clear communication protocols, designated roles (Commander, Operations, Communications), and an established runbook for standard mitigations."
+            },
+            {
+                id: "doc_04",
+                title: "Monitoring and Observability Basics",
+                category: "foundation",
+                content: "The Four Golden Signals of monitoring are Latency, Traffic, Errors, and Saturation. Latency is the time taken to service a request. Traffic measures the demand placed on the system (e.g., HTTP requests per second). Errors indicate the rate of failing requests. Saturation measures how 'full' a service is (e.g., CPU utilization, memory, connection pools). Observability goes beyond traditional monitoring by allowing engineers to answer 'unknown unknowns' using high-cardinality data. It relies on the three pillars: Metrics (aggregated numerical data), Logs (discrete events), and Distributed Traces (request lifecycle across microservices). Relying on symptoms rather than causes when writing alerts prevents alert fatigue."
+            },
+            {
+                id: "doc_05",
+                title: "Distributed System Reliability Patterns",
+                category: "architecture",
+                content: "To build resilient distributed systems, several architectural patterns are essential. The Circuit Breaker pattern prevents a system from repeatedly trying to execute an operation that is likely to fail, stopping cascading failures. Retries with Exponential Backoff and Jitter ensure that temporary network glitches are handled without causing a 'thundering herd' of reconnecting clients. The Bulkhead pattern partitions resources so that a failure in one area (e.g., connection pool exhaustion in a specific service endpoint) does not bring down the entire application. Rate Limiting protects backend services from sudden traffic spikes or DDoS attacks, ensuring Graceful Degradation under excessive load."
+            },
+            {
+                id: "doc_06",
+                title: "Database Scaling and Failure Modes",
+                category: "architecture",
+                content: "Databases scale vertically (more CPU/RAM) or horizontally (sharding). Read Replicas help distribute read traffic but introduce Replication Lag. If a primary node fails, split-brain scenarios can occur if a secondary node is promoted while the primary still accepts writes. A consensus algorithm (like Paxos or Raft) prevents this. Connection pool exhaustion is a common failure mode when application threads hold database locks too long, typically caused by missing indexes resulting in full table scans. Deadlocks occur when two concurrent transactions wait for locks held by each other. Mitigations include enforcing strict lock acquisition orders and configuring robust statement timeouts."
+            },
+            {
+                id: "doc_07",
+                title: "API Gateway Architecture Reliability",
+                category: "architecture",
+                content: "An API Gateway acts as the single entry point for microservices, handling routing, composition, and edge functions. Reliability at this tier is critical. To prevent backend overload, gateways must implement strict reverse proxy timeouts and aggressive request throttling based on client IP or API keys. Caching frequently requested data (like JWT validation results) at the edge drastically reduces downstream database load. A misconfigured gateway can lead to cascading failures; therefore, it should fail open or fail closed depending on the security posture. Implementing 'shedding' logic drops non-critical requests during high CPU load to preserve core functionality."
+            },
+            {
+                id: "doc_08",
+                title: "Cloud Region Failure Handling",
+                category: "architecture",
+                content: "To survive the loss of an entire cloud region (e.g., due to natural disasters or major provider outages), systems must employ multi-region architectures. Active-Active setups route traffic to multiple regions simultaneously using Global Server Load Balancing (GSLB) and Anycast DNS, requiring complex conflict-free replicated data types (CRDTs) or asynchronous database replication. Active-Passive setups maintain a standby region, allowing for simpler database designs but higher Recovery Time Objectives (RTO). Key challenges include managing cross-region replication latency, avoiding data split-brain, and ensuring DNS TTLs are low enough to quickly propagate failover IP addresses."
+            },
+            {
+                id: "doc_09",
+                title: "Cloudflare DNS Outage Incident",
+                category: "incident",
+                content: "Incident Name: 1.1.1.1 DNS Resolution Failure. Impact: Global routing failure for approximately 15% of DNS queries to 1.1.1.1 for 27 minutes. Root Cause: A BGP route leak caused by an erroneous configuration change in the core routing table. Timeline: Network engineering team began scheduled maintenance on edge routers. A typo in the BGP prefix filter allowed internal route prefixes to be advertised globally. Automated monitoring detected a 40% drop in query volume. The erroneous configuration was rolled back via the automated CI/CD pipeline. Remediation: Implement stricter automated validation for BGP prefix filters before deployment, and introduce staged canary rollout for routing configuration changes."
+            },
+            {
+                id: "doc_10",
+                title: "GitHub Database Connection Failure",
+                category: "incident",
+                content: "Incident: GitHub Core Database Partition. Impact: Users unable to push or pull repositories or view issues for 45 minutes. Root Cause Analysis: The primary MySQL database experienced a network partition from the orchestrator node. The automated failover mechanism initiated the promotion of a read replica to primary. However, the application layer was not correctly shedding old connections. The newly promoted primary instantly hit its `max_connections` limit due to connection storming from thousands of application workers attempting to reconnect simultaneously. Remediation: Implemented PgBouncer/ProxySQL to queue and throttle connection attempts during failovers, and randomized the application retry timers with jitter."
+            },
+            {
+                id: "doc_11",
+                title: "Stripe Payment Latency Incident",
+                category: "incident",
+                content: "Incident: Payment API Latency Spike. Impact: 5% of API requests timed out for 15 minutes. Root Cause: A cache stampede caused by the simultaneous expiration of thousands of authentication tokens. When the Redis cluster evicted these tokens, thousands of concurrent requests bypassed the cache and hit the backend PostgreSQL database directly to validate credentials. The database CPU spiked to 100%, causing query queuing and eventually API timeouts. Resolution: The team temporarily disabled a non-critical webhooks service to reduce database load. Remediation: Introduced cache jitter, ensuring TTLs have a random variance (e.g., +/- 5 minutes) so that keys do not expire simultaneously, preventing future stampedes."
+            },
+            {
+                id: "doc_12",
+                title: "Uber API Degradation Incident",
+                category: "incident",
+                content: "Incident: Dispatch API Degradation. Impact: Rider app latency increased by 5000ms, resulting in failed ride requests in North America. Root Cause: A bad deployment in the pricing calculation microservice introduced a severe memory leak. Within minutes of deployment, the pods began hitting their cgroup memory limits and were Out-Of-Memory (OOM) killed by Kubernetes. The constant pod restarts led to severe capacity reduction. The API Gateway continued to route traffic to failing pods because the readiness probes were misconfigured to only check a static health endpoint rather than actual processing capability. Remediation: Rolled back the deployment and updated readiness probes to reflect true operational state."
+            },
+            {
+                id: "doc_13",
+                title: "Google Cloud Regional Outage",
+                category: "incident",
+                content: "Incident: us-east4 Regional Outage. Impact: Complete loss of compute and storage services in the region for 3 hours. Root Cause: A catastrophic failure of the physical cooling infrastructure within the primary data center facility. The redundant water chillers lost pressure due to a burst main pipe. To prevent permanent hardware damage and potential fire hazards, the automated environmental monitoring systems triggered a hard power-down of the server racks once ambient temperatures exceeded safe operational thresholds. Remediation: Enhanced physical redundancy in plumbing infrastructure and accelerated the transition to multi-region architecture for core managed services to allow seamless failover."
+            },
+            {
+                id: "doc_14",
+                title: "Shopify Deployment Failure",
+                category: "incident",
+                content: "Incident: Checkout Infrastructure Outage. Impact: Checkout service unavailable for 12 minutes. Root Cause: A seemingly benign database migration attempted to add a column with a default value to the massive `orders` table. In the specific version of MySQL used, this operation required an exclusive table lock and rewrote the entire table. The CI/CD pipeline deployed this migration during peak traffic hours. The exclusive lock blocked all `INSERT` statements from the checkout service, causing the application threads to exhaust connection pools and crash. Remediation: Enforced the use of online schema change tools (like gh-ost or pt-online-schema-change) for all large tables, blocking direct DDL statements in CI."
+            },
+            {
+                id: "doc_15",
+                title: "Netflix Streaming Degradation",
+                category: "incident",
+                content: "Incident: Video Playback Error Storm. Impact: Specific new releases failed to play for users globally for 40 minutes. Root Cause: The incident was traced to the eventual consistency model of Amazon S3. A batch process uploaded new video manifest files and immediately updated the metadata service database. However, when the global CDN edge nodes requested these new manifest files from S3 based on the database pointers, S3 returned HTTP 404s due to internal replication delays. The CDN negatively cached the 404 responses. Remediation: Implemented a 'read-after-write' verification step before committing metadata to the database, and bypassed negative caching on the CDN for 404 manifest errors."
+            },
+            {
+                id: "doc_16",
+                title: "Prometheus Monitoring Strategy",
+                category: "observability",
+                content: "Prometheus is a pull-based monitoring system relying on PromQL. Best practices include keeping metric cardinality low. High cardinality (e.g., using a user ID or raw IP address as a metric label) creates millions of unique time series, resulting in explosive memory usage and crashing the Prometheus server. Recording rules should be used to precompute expensive PromQL queries, especially those driving critical dashboards. The Alertmanager component must be configured with proper grouping to aggregate related alerts (preventing alert storms during network partitions) and inhibition rules to suppress downstream alerts when a core service is known to be down."
+            },
+            {
+                id: "doc_17",
+                title: "OpenTelemetry Tracing Model",
+                category: "observability",
+                content: "OpenTelemetry provides a unified standard for distributed tracing. The core concept is context propagation using W3C Trace Context headers (traceparent/tracestate). When a request enters the system, a root Span is created with a unique Trace ID. As the request traverses microservices, child Spans are generated. Due to data volume, sampling is required. Head-based sampling decides at the gateway to trace 1% of requests. Tail-based sampling traces 100% in memory but only exports traces that resulted in high latency or errors. Instrumenting code properly involves enriching spans with semantic attributes (e.g., HTTP status, DB query types) without logging sensitive PII."
+            },
+            {
+                id: "doc_18",
+                title: "Chaos Engineering Principles",
+                category: "observability",
+                content: "Chaos Engineering is the discipline of experimenting on a system to build confidence in its capability to withstand turbulent conditions in production. Inspired by Netflix's Chaos Monkey, the practice involves deliberately injecting faults—such as adding 200ms latency to a network link, randomly terminating EC2 instances, or dropping 10% of database packets. This is done to empirically verify that fallback paths, circuit breakers, and alert thresholds function correctly before a real incident occurs. Experiments must have a defined 'steady state', a hypothesis, and an immediate abort mechanism (the 'big red button') to halt the experiment if customer impact exceeds acceptable thresholds."
+            }
+        ];
+
+        // -----------------------------------------
+        // 3. UI CONTROLLER & APP LOGIC
+        // -----------------------------------------
+        const app = {
+            init() {
+                app.viewer.init(); 
+                this.storage.loadSettings();
+                this.setMode(STATE.mode); 
+                this.ui.setupEventListeners();
+                this.chat.appendWelcomeMessage();
+                
+                if (STATE.documents.length === 0) {
+                    const demoBanner = document.getElementById('demo-banner');
+                    if (demoBanner) demoBanner.classList.remove('hidden');
+                }
+
+                marked.setOptions({
+                    highlight: function(code, lang) {
+                        if (lang && hljs.getLanguage(lang)) {
+                            return hljs.highlight(code, { language: lang }).value;
+                        }
+                        return hljs.highlightAuto(code).value;
+                    }
+                });
+            },
+
+            setMode(newMode) {
+                STATE.mode = newMode;
+                const container = document.getElementById('mode-indicator');
+                if (!container) return;
+                
+                if (newMode === MODES.LIVE) {
+                    container.innerHTML = `
+                        <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                        <span class="text-gray-300 font-medium text-xs">Live Mode Active</span>
+                    `;
+                } else if (newMode === MODES.DEMO) {
+                    container.innerHTML = `
+                        <div class="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]"></div>
+                        <span class="text-gray-300 font-medium text-xs">Demo Mode Active</span>
+                    `;
+                } else if (newMode === MODES.FALLBACK) {
+                    container.innerHTML = `
+                        <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                        <span class="text-red-400 font-medium text-xs">Fallback Mode Active</span>
+                    `;
+                }
+            },
+
+            updateModeCheck() {
+                if (!API_KEY || API_KEY.trim() === "") {
+                    this.setMode(MODES.DEMO);
+                } else {
+                    this.setMode(MODES.LIVE);
+                }
+            },
+
+            // --- Navigation ---
+            nav: {
+                switchView(viewId) {
+                    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+                    const targetView = document.getElementById(`view-${viewId}`);
+                    if(targetView) targetView.classList.remove('hidden');
+                    
+                    document.querySelectorAll('.nav-btn').forEach(btn => {
+                        btn.classList.remove('bg-white/5', 'text-white');
+                        btn.classList.add('text-gray-400');
+                    });
+                    const activeBtn = document.querySelector(`.nav-btn[data-target="${viewId}"]`);
+                    if (activeBtn) {
+                        activeBtn.classList.add('bg-white/5', 'text-white');
+                        activeBtn.classList.remove('text-gray-400');
+                    }
+                }
+            },
+
+            // --- UI Utilities ---
+            ui: {
+                setupEventListeners() {
+                    const chatInput = document.getElementById('chat-input');
+                    const chatSend = document.getElementById('chat-send');
+
+                    if (chatInput) {
+                        chatInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                app.chat.handleSend();
+                            }
+                        });
+                        chatInput.addEventListener('input', function() {
+                            this.style.height = 'auto';
+                            const newHeight = Math.min(this.scrollHeight, 150);
+                            this.style.height = newHeight + 'px';
+                        });
+                    }
+                    if (chatSend) {
+                        chatSend.addEventListener('click', () => app.chat.handleSend());
+                    }
+
+                    const dropZone = document.getElementById('drop-zone');
+                    const fileInput = document.getElementById('file-input');
+
+                    if (dropZone) {
+                        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
+                            dropZone.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+                        });
+
+                        ['dragenter', 'dragover'].forEach(eName => {
+                            dropZone.addEventListener(eName, () => dropZone.classList.add('drag-active'), false);
+                        });
+                        ['dragleave', 'drop'].forEach(eName => {
+                            dropZone.addEventListener(eName, () => dropZone.classList.remove('drag-active'), false);
+                        });
+
+                        dropZone.addEventListener('drop', (e) => app.kb.handleFiles(e.dataTransfer.files));
+                    }
+                    
+                    if (fileInput) {
+                        fileInput.addEventListener('change', (e) => app.kb.handleFiles(e.target.files));
+                    }
+
+                    // Document Search & Filter
+                    const kbSearch = document.getElementById('kb-search');
+                    if (kbSearch) {
+                        kbSearch.addEventListener('input', (e) => {
+                            kbSearchQuery = e.target.value.toLowerCase();
+                            app.kb.renderList();
+                        });
+                    }
+                    
+                    const kbFilter = document.getElementById('kb-filter');
+                    if (kbFilter) {
+                        kbFilter.addEventListener('change', (e) => {
+                            kbCategoryFilter = e.target.value;
+                            app.kb.renderList();
+                        });
+                    }
+                },
+
+                showToast(message, type = 'info') {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+                    
+                    const toast = document.createElement('div');
+                    let icon = 'fa-info-circle text-brand-400';
+                    let border = 'border-brand-500';
+                    if(type === 'success') { icon = 'fa-check-circle text-green-400'; border = 'border-green-500'; }
+                    if(type === 'error') { icon = 'fa-exclamation-circle text-red-400'; border = 'border-red-500'; }
+                    if(type === 'warning') { icon = 'fa-triangle-exclamation text-yellow-400'; border = 'border-yellow-500'; }
+
+                    toast.className = `glass-panel px-4 py-3 rounded-lg shadow-xl text-sm text-white flex items-center gap-3 animate-fade-in border-l-4 ${border} bg-dark-800/95 pointer-events-auto`;
+                    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+                    container.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(10px)';
+                        toast.style.transition = 'all 0.3s ease';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 4000);
+                },
+
+                confirmAction(title, message, onConfirm) {
+                    const modal = document.getElementById('modal-confirm');
+                    const content = document.getElementById('modal-confirm-content');
+                    if (!modal || !content) return;
+                    
+                    const titleEl = document.getElementById('modal-confirm-title');
+                    if (titleEl) titleEl.innerText = title;
+                    
+                    const msgEl = document.getElementById('modal-confirm-message');
+                    if (msgEl) msgEl.innerText = message;
+                    
+                    const btnCancel = document.getElementById('modal-confirm-cancel');
+                    const btnOk = document.getElementById('modal-confirm-ok');
+                    
+                    if (btnCancel && btnOk) {
+                        const newBtnCancel = btnCancel.cloneNode(true);
+                        btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
+                        const newBtnOk = btnOk.cloneNode(true);
+                        btnOk.parentNode.replaceChild(newBtnOk, btnOk);
+                        
+                        const closeModal = () => {
+                            modal.classList.add('opacity-0');
+                            content.classList.add('scale-95');
+                            setTimeout(() => modal.classList.add('hidden'), 200);
+                        };
+
+                        newBtnCancel.addEventListener('click', closeModal);
+                        newBtnOk.addEventListener('click', () => {
+                            closeModal();
+                            onConfirm();
+                        });
+                    }
+
+                    modal.classList.remove('hidden');
+                    setTimeout(() => { 
+                        modal.classList.remove('opacity-0'); 
+                        content.classList.remove('scale-95'); 
+                    }, 10);
+                },
+
+                openSettings() {
+                    const apiKeyInput = document.getElementById('setting-api-key');
+                    if (apiKeyInput) apiKeyInput.value = API_KEY;
+                    
+                    const modelSelect = document.getElementById('setting-model');
+                    if (modelSelect) {
+                        if (VALID_MODELS.includes(CONFIG.model)) {
+                            modelSelect.value = CONFIG.model;
+                        } else {
+                            modelSelect.value = "gemini-1.5-flash";
+                        }
+                    }
+                    
+                    const topKInput = document.getElementById('setting-top-k');
+                    if (topKInput) topKInput.value = CONFIG.topK;
+                    
+                    const tempInput = document.getElementById('setting-temp');
+                    if (tempInput) tempInput.value = CONFIG.temperature;
+
+                    const modal = document.getElementById('modal-settings');
+                    const content = document.getElementById('modal-settings-content');
+                    if (modal && content) {
+                        modal.classList.remove('hidden');
+                        setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+                    }
+                },
+
+                closeSettings() {
+                    const modal = document.getElementById('modal-settings');
+                    const content = document.getElementById('modal-settings-content');
+                    if (modal && content) {
+                        modal.classList.add('opacity-0');
+                        content.classList.add('scale-95');
+                        setTimeout(() => modal.classList.add('hidden'), 200);
+                    }
+                },
+
+                saveSettings() {
+                    const apiKeyInput = document.getElementById('setting-api-key');
+                    if (apiKeyInput) API_KEY = apiKeyInput.value.trim();
+                    app.updateModeCheck(); // Recalculate mode based on new key
+                    
+                    const modelSelect = document.getElementById('setting-model');
+                    if (modelSelect) {
+                        let selectedModel = modelSelect.value;
+                        if (!VALID_MODELS.includes(selectedModel)) {
+                            selectedModel = "gemini-1.5-flash";
+                        }
+                        CONFIG.model = selectedModel;
+                    }
+                    
+                    const topKInput = document.getElementById('setting-top-k');
+                    if (topKInput) CONFIG.topK = parseInt(topKInput.value) || 5;
+                    
+                    const tempInput = document.getElementById('setting-temp');
+                    if (tempInput) CONFIG.temperature = parseFloat(tempInput.value) || 0.2;
+                    
+                    app.storage.saveSettings();
+                    this.closeSettings();
+                    this.showToast('Settings saved successfully.', 'success');
+                },
+
+                updateMetrics() {
+                    const metricDocs = document.getElementById('metric-docs');
+                    if (metricDocs) metricDocs.innerText = STATE.documents.length;
+                    
+                    const metricChunks = document.getElementById('metric-chunks');
+                    if (metricChunks) metricChunks.innerText = STATE.chunks.length;
+                    
+                    const navDocCount = document.getElementById('nav-doc-count');
+                    if (navDocCount) navDocCount.innerText = STATE.documents.length;
+                    
+                    const demoBanner = document.getElementById('demo-banner');
+                    if (demoBanner) {
+                        if (STATE.documents.length > 0) {
+                            demoBanner.classList.add('hidden');
+                        } else {
+                            demoBanner.classList.remove('hidden');
+                        }
+                    }
+                },
+
+                setUploadProgress(percent, text) {
+                    const statusDiv = document.getElementById('upload-status');
+                    if (!statusDiv) return;
+                    statusDiv.classList.remove('hidden');
+                    
+                    const statusPercent = document.getElementById('status-percent');
+                    if (statusPercent) statusPercent.innerText = `${Math.round(percent)}%`;
+                    
+                    const statusText = document.getElementById('status-text');
+                    if (statusText) statusText.innerText = text;
+                    
+                    const statusBar = document.getElementById('status-bar');
+                    if (statusBar) statusBar.style.width = `${percent}%`;
+                    
+                    if (percent >= 100) setTimeout(() => statusDiv.classList.add('hidden'), 2000);
+                }
+            },
+
+            // --- Simple Local Storage (Persistence) ---
+            storage: {
+                saveSettings() {
+                    try {
+                        localStorage.setItem('atlas_sre_settings', JSON.stringify({ 
+                            API_KEY, 
+                            model: CONFIG.model,
+                            topK: CONFIG.topK, 
+                            temp: CONFIG.temperature 
+                        }));
+                    } catch (e) {
+                        console.error("Failed to save settings:", e);
+                    }
+                },
+                loadSettings() {
+                    try {
+                        let savedModel = localStorage.getItem("model");
+                        if (savedModel && !VALID_MODELS.includes(savedModel)) {
+                            localStorage.removeItem("model");
+                        }
+
+                        const data = JSON.parse(localStorage.getItem('atlas_sre_settings'));
+                        if (data) {
+                            API_KEY = data.API_KEY || "";
+                            app.updateModeCheck(); 
+
+                            if (data.model && VALID_MODELS.includes(data.model)) {
+                                CONFIG.model = data.model;
+                            } else {
+                                CONFIG.model = "gemini-1.5-flash";
+                            }
+                            
+                            CONFIG.topK = data.topK || 5;
+                            CONFIG.temperature = data.temp !== undefined ? data.temp : 0.2;
+                        } else {
+                            app.updateModeCheck();
+                        }
+                    } catch(e) {
+                        console.warn("No valid settings found in storage, using defaults.");
+                        CONFIG.model = "gemini-1.5-flash";
+                        app.updateModeCheck();
+                    }
+                    this.saveSettings();
+                }
+            },
+
+            // --- Right Sources Panel ---
+            sources: {
+                show(msgIndex) {
+                    const historyItem = STATE.chatHistory[msgIndex];
+                    if (!historyItem || !historyItem.retrievedInfo) return;
+
+                    const listContainer = document.getElementById('sources-list');
+                    if(!listContainer) return;
+                    listContainer.innerHTML = '';
+
+                    historyItem.retrievedInfo.forEach((source, idx) => {
+                        const snippet = source.text.length > 150 ? source.text.substring(0, 150) + "..." : source.text;
+                        const scoreDisplay = source.score ? `<span class="text-[10px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20">Match: ${(source.score*10).toFixed(1)}</span>` : '';
+                        
+                        listContainer.innerHTML += `
+                            <div class="glass-panel p-3 rounded-xl border border-white/5 hover:border-brand-500/50 hover:bg-white/[0.03] transition-all cursor-pointer group" onclick="app.viewer.openFromChunk('${source.id}')">
+                                <div class="flex justify-between items-start mb-1.5">
+                                    <h4 class="text-xs font-bold text-gray-200 group-hover:text-brand-300 transition-colors line-clamp-1 flex-1 pr-2" title="${source.title}">
+                                        <i class="fa-solid fa-file-pdf mr-1 text-gray-400 group-hover:text-brand-400"></i>
+                                        ${source.title}
+                                    </h4>
+                                </div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-[10px] bg-dark-700 text-gray-400 px-1.5 py-0.5 rounded border border-white/10 font-mono">Pg ${source.pageNum}</span>
+                                    ${scoreDisplay}
+                                </div>
+                                <p class="text-[11px] text-gray-500 leading-snug italic border-l-2 border-brand-500/30 pl-2 line-clamp-3">"${snippet}"</p>
+                            </div>
+                        `;
+                    });
+
+                    // Slide in
+                    const sourcesPanel = document.getElementById('sources-panel');
+                    if (sourcesPanel) sourcesPanel.classList.remove('translate-x-full');
+                    
+                    const mainContent = document.getElementById('main-content');
+                    if (mainContent) mainContent.style.marginRight = '20rem';
+                },
+                close() {
+                    const sourcesPanel = document.getElementById('sources-panel');
+                    if (sourcesPanel) sourcesPanel.classList.add('translate-x-full');
+                    
+                    const mainContent = document.getElementById('main-content');
+                    if (mainContent) mainContent.style.marginRight = '0';
+                }
+            },
+
+            // --- Document Viewer (PDF Canvas + Text Fallback) ---
+            viewer: {
+                pdfInstance: null,
+                scale: 1.2,
+                observer: null,
+                highlightText: "",
+                targetPage: 1,
+                currentDocId: null,
+
+                init() {
+                    // UI binding for scroll indicator
+                    const viewerBody = document.getElementById('viewer-body');
+                    if (viewerBody) {
+                        viewerBody.addEventListener('scroll', (e) => {
+                            if (!this.pdfInstance) return;
+                            const el = e.target;
+                            const scrollPerc = el.scrollHeight > el.clientHeight ? el.scrollTop / (el.scrollHeight - el.clientHeight) : 0;
+                            const scrollBar = document.getElementById('pdf-scroll-bar');
+                            if (scrollBar) scrollBar.style.width = `${scrollPerc * 100}%`;
+                        });
+                    }
+                },
+
+                async open(docId, pageNum = 1, textToHighlight = "") {
+                    const doc = STATE.documents.find(d => d.id === docId);
+                    if (!doc) return app.ui.showToast("Document not found", "error");
+                    
+                    this.highlightText = textToHighlight;
+                    this.targetPage = parseInt(pageNum) || 1;
+                    this.currentDocId = docId;
+                    
+                    const titleEl = document.getElementById('viewer-title');
+                    if (titleEl) titleEl.innerText = doc.title;
+                    
+                    const categoryEl = document.getElementById('viewer-category');
+                    if (categoryEl) categoryEl.innerText = doc.category;
+                    
+                    const modeBadge = document.getElementById('viewer-mode-badge');
+                    if (modeBadge) modeBadge.innerText = doc.pdfData ? "PDF Mode" : "Text Mode";
+                    
+                    const totalPageNum = document.getElementById('total-page-num');
+                    if (totalPageNum) totalPageNum.innerText = doc.pdfData ? '?' : '1';
+                    
+                    const pdfToolbar = document.getElementById('pdf-toolbar');
+                    const scrollIndicator = document.getElementById('pdf-scroll-indicator');
+                    const floatingPage = document.getElementById('pdf-floating-page');
+                    const canvasContainer = document.getElementById('pdf-scroll-container');
+                    const textContainer = document.getElementById('text-fallback-container');
+                    const loader = document.getElementById('viewer-loading');
+
+                    // Show loader & modal
+                    if (loader) loader.classList.remove('hidden');
+                    const backdrop = document.getElementById('doc-viewer-backdrop');
+                    const docViewer = document.getElementById('doc-viewer');
+                    
+                    if (backdrop) backdrop.classList.remove('hidden');
+                    setTimeout(() => {
+                        if (backdrop) backdrop.classList.remove('opacity-0');
+                        if (docViewer) docViewer.classList.remove('translate-y-[120%]');
+                    }, 10);
+
+                    // Clear previous content
+                    if (canvasContainer) canvasContainer.innerHTML = '';
+                    const viewerContent = document.getElementById('viewer-content');
+                    if (viewerContent) viewerContent.innerHTML = '';
+                    if (this.observer) this.observer.disconnect();
+
+                    if (doc.pdfData && canvasContainer && pdfToolbar && scrollIndicator && floatingPage && textContainer) {
+                        // Real PDF Render Mode (Continuous Scroll)
+                        pdfToolbar.classList.remove('hidden');
+                        scrollIndicator.classList.remove('hidden');
+                        floatingPage.classList.remove('hidden');
+                        canvasContainer.classList.remove('hidden');
+                        textContainer.classList.add('hidden');
+
+                        try {
+                            const pdfDataCopy = doc.pdfData.slice(0); // Prevent detachment
+                            const loadingTask = pdfjsLib.getDocument({data: pdfDataCopy});
+                            this.pdfInstance = await loadingTask.promise;
+                            
+                            const pageCountEl = document.getElementById('page_count');
+                            if (pageCountEl) pageCountEl.innerText = this.pdfInstance.numPages;
+                            if (totalPageNum) totalPageNum.innerText = this.pdfInstance.numPages;
+
+                            // Create placeholders for lazy loading
+                            for (let i = 1; i <= this.pdfInstance.numPages; i++) {
+                                const pageDiv = document.createElement('div');
+                                pageDiv.id = `pdf-page-${i}`;
+                                // Ensure standard structure to fix scale-factor
+                                pageDiv.className = 'pdf-page-container relative shadow-[0_0_20px_rgba(0,0,0,0.4)] bg-white w-fit mx-auto border border-white/10 rounded-sm overflow-hidden transition-transform duration-200';
+                                pageDiv.style.minHeight = '800px'; 
+                                pageDiv.style.minWidth = '600px';
+                                pageDiv.style.setProperty('--scale-factor', this.scale); // FIX: Provide default scale-factor early
+                                pageDiv.dataset.page = i;
+                                pageDiv.dataset.rendered = "false";
+                                
+                                const canvas = document.createElement('canvas');
+                                canvas.className = 'block max-w-full';
+                                pageDiv.appendChild(canvas);
+                                
+                                const textLayer = document.createElement('div');
+                                textLayer.className = 'textLayer pointer-events-auto'; // Standard class for pdf.js CSS
+                                pageDiv.appendChild(textLayer);
+                                
+                                // Local page indicator watermark
+                                const marker = document.createElement('div');
+                                marker.className = 'absolute bottom-2 right-2 text-[10px] text-gray-400 font-mono bg-white/80 px-2 py-0.5 rounded shadow-sm z-10 select-none';
+                                marker.innerText = `Page ${i}`;
+                                pageDiv.appendChild(marker);
+
+                                canvasContainer.appendChild(pageDiv);
+                            }
+                            
+                            this.setupObserver();
+                            
+                            // Scroll to target page
+                            setTimeout(() => {
+                                const targetDiv = document.getElementById(`pdf-page-${this.targetPage}`);
+                                if (targetDiv) {
+                                    targetDiv.scrollIntoView({behavior: "auto"});
+                                }
+                                if (loader) loader.classList.add('hidden');
+                            }, 100);
+
+                        } catch (err) {
+                            console.error(err);
+                            app.ui.showToast("Failed to initialize PDF viewer.", "error");
+                            if (loader) loader.classList.add('hidden');
+                        }
+
+                    } else if (textContainer && pdfToolbar && scrollIndicator && floatingPage && canvasContainer && viewerContent) {
+                        // Text Fallback Mode (Demo documents)
+                        pdfToolbar.classList.add('hidden');
+                        scrollIndicator.classList.add('hidden');
+                        floatingPage.classList.add('hidden');
+                        canvasContainer.classList.add('hidden');
+                        textContainer.classList.remove('hidden');
+                        
+                        this.pdfInstance = null; 
+
+                        let contentToParse = doc.content;
+                        
+                        // Simple highlighting logic
+                        if (textToHighlight) {
+                            // Extract main keywords for fuzzy finding since exact chunk might have markdown
+                            const searchTerms = textToHighlight.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 4).slice(0, 5);
+                            if (searchTerms.length > 0) {
+                                const escapedTerms = searchTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+                                const regex = new RegExp(`(${escapedTerms})`, 'gi');
+                                contentToParse = contentToParse.replace(regex, `===$1===`);
+                            }
+                        }
+                        
+                        let contentHTML = DOMPurify.sanitize(marked.parse(contentToParse));
+                        
+                        if (textToHighlight) {
+                            contentHTML = contentHTML.replace(/===([\s\S]*?)===/g, '<mark class="bg-brand-500/40 text-brand-50 rounded px-1" id="highlighted-chunk">$1</mark>');
+                        }
+                        
+                        viewerContent.innerHTML = contentHTML;
+                        if (loader) loader.classList.add('hidden');
+
+                        // Scroll logic for text mode
+                        if (textToHighlight) {
+                            setTimeout(() => {
+                                const mark = document.getElementById('highlighted-chunk');
+                                if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 300);
+                        } else {
+                            const viewerBody = document.getElementById('viewer-body');
+                            if (viewerBody) viewerBody.scrollTop = 0;
+                        }
+                    }
+                },
+
+                setupObserver() {
+                    const viewerBody = document.getElementById('viewer-body');
+                    if (!viewerBody) return;
+
+                    const options = {
+                        root: viewerBody,
+                        rootMargin: "800px 0px", // Pre-load 1 page ahead/behind roughly
+                        threshold: 0.1
+                    };
+
+                    this.observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const pageNum = parseInt(entry.target.dataset.page);
+                                this.renderPdfPage(entry.target, pageNum);
+                            }
+                        });
+                    }, options);
+                    
+                    document.querySelectorAll('.pdf-page-container').forEach(el => this.observer.observe(el));
+
+                    // Secondary observer just to track current visible page for header
+                    const trackingObserver = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                                const pageNum = entry.target.dataset.page;
+                                const pageNumEl = document.getElementById('page_num');
+                                if (pageNumEl) pageNumEl.innerText = pageNum;
+                                
+                                const currentPageNumEl = document.getElementById('current-page-num');
+                                if (currentPageNumEl) currentPageNumEl.innerText = pageNum;
+                            }
+                        });
+                    }, { root: viewerBody, threshold: 0.5 });
+
+                    document.querySelectorAll('.pdf-page-container').forEach(el => trackingObserver.observe(el));
+                },
+
+                async renderPdfPage(pageDiv, pageNum) {
+                    if (pageDiv.dataset.rendered === "true") return;
+                    pageDiv.dataset.rendered = "true";
+                    
+                    try {
+                        const page = await this.pdfInstance.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: this.scale });
+                        
+                        // FIX: Explicitly set CSS scale-factor variable on container for PDF.js textLayer styling
+                        pageDiv.style.setProperty('--scale-factor', viewport.scale);
+                        
+                        const canvas = pageDiv.querySelector('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        
+                        // Set container size explicitly to match viewport
+                        pageDiv.style.width = `${viewport.width}px`;
+                        pageDiv.style.height = `${viewport.height}px`;
+
+                        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                        
+                        // Text layer for highlighting
+                        const textContent = await page.getTextContent();
+                        const textLayerDiv = pageDiv.querySelector('.textLayer');
+                        
+                        if (textLayerDiv) {
+                            pdfjsLib.renderTextLayer({
+                                textContent: textContent,
+                                container: textLayerDiv,
+                                viewport: viewport,
+                                textDivs: []
+                            }).promise.then(() => {
+                                // Apply highlighting if this is the target page
+                                if (this.highlightText && this.targetPage === pageNum) {
+                                    this.applyHighlight(textLayerDiv, this.highlightText);
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.error(`Failed to render page ${pageNum}`, e);
+                        pageDiv.dataset.rendered = "false"; // allow retry
+                    }
+                },
+
+                applyHighlight(container, text) {
+                    // Extract significant words from the highlight snippet
+                    const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 4);
+                    if (words.length === 0) return;
+
+                    const spans = container.querySelectorAll('span');
+                    let firstMatch = null;
+                    
+                    spans.forEach(span => {
+                        const spanText = span.innerText.toLowerCase();
+                        if (words.some(w => spanText.includes(w))) {
+                            span.classList.add('highlighted');
+                            if (!firstMatch) firstMatch = span;
+                        }
+                    });
+                    
+                    if (firstMatch) {
+                        // Scroll to the exact highlighted span smoothly within the scroll container
+                        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                },
+
+                updateZoom() {
+                    if (!this.pdfInstance) return;
+                    const zoomLevelEl = document.getElementById('viewer-zoom-level');
+                    if (zoomLevelEl) zoomLevelEl.innerText = `${Math.round(this.scale * 100)}%`;
+                    
+                    // Reset all rendered states to force re-render at new scale
+                    document.querySelectorAll('.pdf-page-container').forEach(el => {
+                        el.dataset.rendered = "false";
+                        // clear text layer
+                        const txtLyr = el.querySelector('.textLayer');
+                        if (txtLyr) txtLyr.innerHTML = '';
+                    });
+                    
+                    // The observer will automatically catch visible ones and re-render them.
+                    const pageNumEl = document.getElementById('page_num');
+                    if (pageNumEl) {
+                        const currPage = parseInt(pageNumEl.innerText);
+                        const targetDiv = document.getElementById(`pdf-page-${currPage}`);
+                        if (targetDiv) {
+                            this.renderPdfPage(targetDiv, currPage);
+                            targetDiv.scrollIntoView({behavior: "auto"}); // re-center
+                        }
+                    }
+                },
+
+                zoomIn() {
+                    if (this.scale >= 3.0) return;
+                    this.scale += 0.2;
+                    this.updateZoom();
+                },
+
+                zoomOut() {
+                    if (this.scale <= 0.6) return;
+                    this.scale -= 0.2;
+                    this.updateZoom();
+                },
+
+                onPrevPage() {
+                    if (!this.pdfInstance) return;
+                    const pageNumEl = document.getElementById('page_num');
+                    if (!pageNumEl) return;
+                    
+                    const curr = parseInt(pageNumEl.innerText);
+                    if (curr > 1) {
+                        const prevDiv = document.getElementById(`pdf-page-${curr - 1}`);
+                        if (prevDiv) prevDiv.scrollIntoView({behavior: "smooth"});
+                    }
+                },
+
+                onNextPage() {
+                    if (!this.pdfInstance) return;
+                    const pageNumEl = document.getElementById('page_num');
+                    if (!pageNumEl) return;
+                    
+                    const curr = parseInt(pageNumEl.innerText);
+                    if (curr < this.pdfInstance.numPages) {
+                        const nextDiv = document.getElementById(`pdf-page-${curr + 1}`);
+                        if (nextDiv) nextDiv.scrollIntoView({behavior: "smooth"});
+                    }
+                },
+                
+                openFromChunk(chunkId) {
+                    const chunk = STATE.chunks.find(c => c.id === chunkId);
+                    if (!chunk) return app.ui.showToast("Source reference not found in active knowledge base.", "error");
+                    this.open(chunk.docId, chunk.pageNum, chunk.text);
+                },
+                
+                close() {
+                    const docViewer = document.getElementById('doc-viewer');
+                    const backdrop = document.getElementById('doc-viewer-backdrop');
+                    
+                    if (docViewer) docViewer.classList.add('translate-y-[120%]');
+                    if (backdrop) backdrop.classList.add('opacity-0');
+                    
+                    setTimeout(() => {
+                        if (backdrop) backdrop.classList.add('hidden');
+                        const scrollContainer = document.getElementById('pdf-scroll-container');
+                        if (scrollContainer) scrollContainer.innerHTML = ''; // free memory
+                        this.pdfInstance = null;
+                    }, 300);
+                }
+            },
+
+            // --- Demo Loader ---
+            demo: {
+                load() {
+                    // Prevent duplicate loading
+                    if (STATE.documents.some(d => d.id === demoDocuments[0].id)) {
+                        app.ui.showToast("Demo Knowledge Base is already loaded.", "info");
+                        const demoBanner = document.getElementById('demo-banner');
+                        if (demoBanner) demoBanner.classList.add('hidden');
+                        return;
+                    }
+
+                    const btns = [document.getElementById('btn-load-demo-banner'), document.getElementById('btn-load-demo-kb')];
+                    btns.forEach(btn => { if (btn) btn.disabled = true; });
+
+                    const demoBanner = document.getElementById('demo-banner');
+                    if (demoBanner) demoBanner.classList.add('hidden');
+                    
+                    app.ui.showToast("Loading Demo Knowledge Base...", "info");
+                    
+                    let progress = 0;
+                    app.ui.setUploadProgress(progress, "Initializing embedded database...");
+
+                    setTimeout(() => {
+                        demoDocuments.forEach((doc) => {
+                            if (!STATE.documents.some(d => d.id === doc.id)) {
+                                // For demo, we don't have pdfData buffer, passes null implicitly
+                                app.kb.processDocument(doc.title, doc.category, doc.content, doc.id);
+                            }
+                            progress += (100 / demoDocuments.length);
+                            app.ui.setUploadProgress(progress, `Indexing: ${doc.title}`);
+                        });
+
+                        app.ui.setUploadProgress(100, "Demo Data Ready");
+                        app.ui.showToast("Knowledge Base hydrated successfully.", "success");
+                        btns.forEach(btn => { if (btn) btn.disabled = false; });
+                        app.nav.switchView('documents');
+                    }, 500); 
+                }
+            },
+
+            // --- Knowledge Base & Chunking Pipeline ---
+            kb: {
+                async handleFiles(files) {
+                    if (files.length === 0) return;
+                    
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        if (file.type !== "application/pdf") {
+                            app.ui.showToast(`${file.name} is not a PDF`, "error");
+                            continue;
+                        }
+
+                        app.ui.setUploadProgress(10, `Reading ${file.name}...`);
+                        try {
+                            const arrayBuffer = await file.arrayBuffer();
+                            const pdfData = new Uint8Array(arrayBuffer); 
+
+                            // Pass a copy using slice(0) so the original doesn't get detached
+                            const pdf = await pdfjsLib.getDocument({data: pdfData.slice(0)}).promise;
+                            
+                            const docId = `upload_${Date.now()}_${i}`;
+                            let fullText = "";
+                            let chunkObjects = [];
+                            
+                            // Chunking Per Page logic
+                            for (let p = 1; p <= pdf.numPages; p++) {
+                                app.ui.setUploadProgress(10 + ((p/pdf.numPages)*40), `Parsing page ${p}...`);
+                                const page = await pdf.getPage(p);
+                                const textContent = await page.getTextContent();
+                                const pageTextRaw = textContent.items.map(item => item.str).join(" ");
+                                const pageTextClean = pageTextRaw.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                                
+                                fullText += pageTextClean + "\n\n";
+
+                                // Create chunks specifically assigned to this page Number
+                                if (pageTextClean.length > 0) {
+                                    const words = pageTextClean.split(' ');
+                                    for (let w = 0; w < words.length; w += (CONFIG.chunkSize - CONFIG.chunkOverlap)) {
+                                        const chunkWords = words.slice(w, w + CONFIG.chunkSize);
+                                        if (chunkWords.length < 10) continue;
+                                        
+                                        const chunkText = chunkWords.join(' ');
+                                        const chunkId = `${docId}_chunk_${chunkObjects.length + 1}`;
+                                        chunkObjects.push({
+                                            id: chunkId,
+                                            docId: docId,
+                                            docTitle: file.name,
+                                            docCategory: "User Document",
+                                            text: chunkText,
+                                            pageNum: p // Explicit page mapping
+                                        });
+                                    }
+                                }
+                            }
+
+                            // 3. Register Document with FULL content and binary data
+                            STATE.documents.push({
+                                id: docId,
+                                title: file.name,
+                                category: "User Document",
+                                content: fullText,
+                                pdfData: pdfData,
+                                dateAdded: new Date().toISOString(),
+                                chunkCount: chunkObjects.length
+                            });
+
+                            // Inject chunks to global state
+                            STATE.chunks.push(...chunkObjects);
+
+                            app.ui.setUploadProgress(100, "Parsing Complete");
+                            app.ui.showToast(`Processed: ${file.name}`, "success");
+                            this.renderList();
+                            app.ui.updateMetrics();
+
+                        } catch (e) {
+                            console.error("PDF Parsing error:", e);
+                            app.ui.showToast(`Failed to parse ${file.name}`, "error");
+                            app.ui.setUploadProgress(100, "Error");
+                        }
+                    }
+                    
+                    const fileInput = document.getElementById('file-input');
+                    if (fileInput) fileInput.value = "";
+                },
+
+                processDocument(title, category, content, id, pdfData = null) {
+                    if (!title || !content) return;
+
+                    // 1. Clean Text: normalize newlines and extra spaces
+                    const cleanText = content.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                    if (!cleanText) return;
+
+                    // Pseudo-pagination for demo documents
+                    const words = cleanText.split(' ');
+                    const WORDS_PER_PSEUDO_PAGE = 350; 
+                    const chunkObjects = [];
+                    
+                    let currentPage = 1;
+                    
+                    for (let i = 0; i < words.length; i += WORDS_PER_PSEUDO_PAGE) {
+                        const pageWords = words.slice(i, i + WORDS_PER_PSEUDO_PAGE);
+                        
+                        // Chunk within the pseudo-page
+                        for (let w = 0; w < pageWords.length; w += (CONFIG.chunkSize - CONFIG.chunkOverlap)) {
+                            const chunkWords = pageWords.slice(w, w + CONFIG.chunkSize);
+                            if (chunkWords.length < 10) continue;
+                            
+                            const chunkText = chunkWords.join(' ');
+                            const chunkId = `${id}_chunk_${chunkObjects.length + 1}`;
+                            chunkObjects.push({
+                                id: chunkId,
+                                docId: id,
+                                docTitle: title,
+                                docCategory: category,
+                                text: chunkText,
+                                pageNum: currentPage
+                            });
+                        }
+                        currentPage++;
+                    }
+
+                    STATE.documents.push({
+                        id,
+                        title,
+                        category,
+                        content: cleanText,
+                        pdfData,
+                        dateAdded: new Date().toISOString(),
+                        chunkCount: chunkObjects.length
+                    });
+                    
+                    STATE.chunks.push(...chunkObjects);
+
+                    this.renderList();
+                    app.ui.updateMetrics();
+                },
+
+                deleteDocument(id) {
+                    STATE.documents = STATE.documents.filter(d => d.id !== id);
+                    STATE.chunks = STATE.chunks.filter(c => c.docId !== id);
+                    this.renderList();
+                    app.ui.updateMetrics();
+                },
+
+                clearAll() {
+                    app.ui.confirmAction(
+                        "Clear Database",
+                        "Are you sure you want to completely clear the knowledge base and chat history? This cannot be undone.",
+                        () => {
+                            STATE.documents = [];
+                            STATE.chunks = [];
+                            STATE.chatHistory = [];
+                            app.sources.close(); 
+                            
+                            this.renderList();
+                            app.ui.updateMetrics();
+                            app.chat.clearHistoryUI();
+                            
+                            const fileInput = document.getElementById('file-input');
+                            if (fileInput) fileInput.value = "";
+                            
+                            app.ui.showToast("Database and session cleared successfully.", "success");
+                        }
+                    );
+                },
+
+                renderList() {
+                    const list = document.getElementById('document-list');
+                    const searchList = document.getElementById('search-results-list');
+                    
+                    if (!list || !searchList) return;
+                    
+                    if (STATE.documents.length === 0) {
+                        list.innerHTML = `<div class="p-8 text-center text-gray-500 text-sm">Knowledge base is empty.</div>`;
+                        searchList.classList.add('hidden');
+                        return;
+                    }
+
+                    if (kbSearchQuery.length > 2) {
+                        // Global Chunk Search Mode
+                        list.classList.add('hidden');
+                        searchList.classList.remove('hidden');
+                        
+                        const searchResults = app.retrieval.search(kbSearchQuery).filter(r => 
+                            kbCategoryFilter === 'all' || r.chunk.docCategory.toLowerCase() === kbCategoryFilter.toLowerCase()
+                        );
+                        
+                        if (searchResults.length === 0) {
+                            searchList.innerHTML = `<div class="p-8 text-center text-gray-500 text-sm">No matches found across documents.</div>`;
+                            return;
+                        }
+                        
+                        searchList.innerHTML = searchResults.map(res => `
+                            <div class="p-4 hover:bg-white/[0.03] transition-colors cursor-pointer group border-l-2 border-transparent hover:border-brand-500" onclick="app.viewer.openFromChunk('${res.chunk.id}')">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-sm font-bold text-gray-200 group-hover:text-brand-300 transition-colors line-clamp-1 flex-1">
+                                        <i class="fa-solid fa-file-text mr-1.5 text-brand-500/70"></i>${res.chunk.docTitle}
+                                    </h4>
+                                    <span class="text-[10px] bg-dark-700 text-gray-400 px-1.5 py-0.5 rounded border border-white/10 font-mono shrink-0">Pg ${res.chunk.pageNum}</span>
+                                </div>
+                                <p class="text-[11px] text-gray-400 line-clamp-2 leading-relaxed italic">"${res.chunk.text.substring(0, 200)}..."</p>
+                            </div>
+                        `).join('');
+                        
+                    } else {
+                        // Standard Document Mode
+                        searchList.classList.add('hidden');
+                        list.classList.remove('hidden');
+                        
+                        const filteredDocs = STATE.documents.filter(d => {
+                            const matchesCat = kbCategoryFilter === 'all' || d.category.toLowerCase() === kbCategoryFilter.toLowerCase();
+                            return matchesCat;
+                        });
+
+                        if (filteredDocs.length === 0) {
+                            list.innerHTML = `<div class="p-8 text-center text-gray-500 text-sm">No documents match the filter.</div>`;
+                            return;
+                        }
+
+                        list.innerHTML = filteredDocs.map(doc => `
+                            <div class="p-3 grid grid-cols-12 gap-2 md:gap-4 items-center hover:bg-white/[0.02] transition-colors group">
+                                <div class="col-span-8 md:col-span-6 flex items-center gap-3 pl-2 overflow-hidden">
+                                    <i class="fa-solid fa-file-pdf text-red-400/80 shrink-0"></i>
+                                    <span class="text-sm font-medium text-brand-100 hover:text-brand-300 truncate cursor-pointer transition-colors" title="${doc.title}" onclick="app.viewer.open('${doc.id}')">${doc.title}</span>
+                                </div>
+                                <div class="hidden md:flex md:col-span-2 text-center justify-center">
+                                    <span class="text-[10px] bg-dark-700 border border-white/10 px-2 py-0.5 rounded text-gray-400 uppercase tracking-wide truncate w-full max-w-[100px]" title="${doc.category}">${doc.category}</span>
+                                </div>
+                                <div class="col-span-2 text-center text-sm text-gray-400 font-mono text-xs">${doc.chunkCount}</div>
+                                <div class="col-span-2 text-center flex justify-center">
+                                    <button onclick="app.kb.deleteDocument('${doc.id}')" class="text-gray-600 hover:text-red-400 transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 p-2 focus:outline-none" title="Remove Document">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).reverse().join('');
+                    }
+                }
+            },
+
+            // --- Lexical Retrieval Engine ---
+            retrieval: {
+                search(query) {
+                    if(STATE.chunks.length === 0) return [];
+
+                    const stopWords = new Set(["what", "when", "where", "which", "who", "why", "how", "are", "you", "the", "and", "for", "with", "this", "that", "from", "does", "can", "could", "would", "should", "about", "into", "over", "after", "then"]);
+                    const queryTerms = query.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+                    if(queryTerms.length === 0) return [];
+
+                    const scoredChunks = STATE.chunks.map(chunk => {
+                        let score = 0;
+                        const chunkText = chunk.text.toLowerCase();
+                        const docTitle = chunk.docTitle.toLowerCase();
+                        const docCategory = chunk.docCategory.toLowerCase();
+                        let textMatchCount = 0;
+
+                        queryTerms.forEach(term => {
+                            let termCount = 0;
+                            let pos = 0;
+                            while(true) {
+                                pos = chunkText.indexOf(term, pos);
+                                if(pos >= 0) { termCount++; pos += term.length; }
+                                else break;
+                            }
+                            
+                            if (termCount > 0) {
+                                textMatchCount++;
+                                score += (1 + Math.log(termCount)); 
+                            }
+
+                            if (docTitle.includes(term) && termCount > 0) {
+                                score += 1.5; 
+                            }
+                            if (docCategory.includes(term)) {
+                                score += 0.2;
+                            }
+                        });
+
+                        if (textMatchCount > 1) {
+                            score *= (textMatchCount * 1.2); 
+                        }
+
+                        return { chunk, score };
+                    });
+
+                    scoredChunks.sort((a, b) => b.score - a.score);
+
+                    const results = [];
+                    const docCounts = {};
+
+                    for (const item of scoredChunks) {
+                        if (item.score <= 0) continue;
+                        
+                        const docId = item.chunk.docId;
+                        docCounts[docId] = (docCounts[docId] || 0) + 1;
+
+                        if (docCounts[docId] <= 2) {
+                            results.push(item);
+                        }
+
+                        if (results.length >= CONFIG.topK) break;
+                    }
+
+                    return results;
+                }
+            },
+
+            // --- Chat Engine & API ---
+            chat: {
+                generateLocalResponse(searchResults, query) {
+                    if (searchResults.length === 0) {
+                        return `**[Local Intelligence Mode]**\n\nI searched the local knowledge base for **"${query}"** but couldn't find any exact matches.\n\n*Note: I am currently running in offline local search mode. To ask general questions or get AI-generated answers, please configure your Gemini API Key in the Settings panel.*`;
+                    }
+
+                    let responseText = "### 🔍 Local Retrieval Mode\n";
+                    responseText += "> *No API key detected (or API unavailable). Returning direct excerpts from local knowledge base. Add your Gemini API key in Settings for AI-powered analysis.*\n\n";
+                    
+                    searchResults.forEach((res, index) => {
+                        const snippet = res.chunk.text.length > 500 ? res.chunk.text.substring(0, 500) + "..." : res.chunk.text;
+                        responseText += `**${index + 1}. ${res.chunk.docTitle}** (Page ${res.chunk.pageNum})\n`;
+                        responseText += `> ${snippet} [Citation: ${res.chunk.id}]\n\n`;
+                    });
+
+                    return responseText;
+                },
+
+                async handleSend() {
+                    const inputEl = document.getElementById('chat-input');
+                    const sendBtn = document.getElementById('chat-send');
+                    if (!inputEl || !sendBtn) return;
+
+                    const text = inputEl.value.trim();
+                    if (!text) return;
+
+                    inputEl.value = '';
+                    inputEl.style.height = 'auto';
+                    sendBtn.disabled = true;
+                    inputEl.disabled = true;
+                    
+                    this.appendMessage('user', text);
+                    
+                    const loadingEl = document.getElementById('chat-loading');
+                    const loadingText = document.getElementById('chat-loading-text');
+                    if (loadingEl) loadingEl.classList.remove('hidden');
+                    if (loadingText) loadingText.innerText = "Retrieving local context...";
+                    
+                    try {
+                        const searchResults = app.retrieval.search(text);
+                        let retrievedInfo = searchResults.map(res => ({
+                            id: res.chunk.id,
+                            title: res.chunk.docTitle,
+                            pageNum: res.chunk.pageNum,
+                            text: res.chunk.text,
+                            score: res.score
+                        }));
+
+                        let aiResponse;
+
+                        if (STATE.mode === MODES.DEMO || STATE.mode === MODES.FALLBACK) {
+                            aiResponse = this.generateLocalResponse(searchResults, text);
+                        } else {
+                            let contextBlock = "";
+                            if (searchResults.length > 0) {
+                                contextBlock = "USE THE FOLLOWING CONTEXT TO ANSWER THE QUESTION. If you use it, you MUST cite your sources using the format [Citation: chunk_id].\n\n";
+                                searchResults.forEach((res) => {
+                                    contextBlock += `--- BEGIN CHUNK ---\n`;
+                                    contextBlock += `Chunk ID: ${res.chunk.id}\n`;
+                                    contextBlock += `Document: ${res.chunk.docTitle}\n`;
+                                    contextBlock += `Page: ${res.chunk.pageNum}\n`;
+                                    contextBlock += `Text: ${res.chunk.text}\n`;
+                                    contextBlock += `--- END CHUNK ---\n\n`;
+                                });
+                            } else {
+                                contextBlock = "No relevant context found in the local knowledge base. Answer the user's question using your general knowledge.";
+                            }
+
+                            const sysPrompt = `You are Atlas SRE, an expert Site Reliability Engineering AI and a helpful general assistant.
+You assist engineers with analyzing incidents, architectures, and answering general technology or programming questions.
+CRITICAL RULES:
+1. ALWAYS prioritize the provided CONTEXT. If the context contains the answer, use it and ALWAYS cite the Chunk ID using EXACTLY this format: [Citation: id_here].
+2. If the user's question is unrelated to the context, or the context lacks the answer, use your general knowledge to answer the question helpfully. Do NOT state that you are missing context if you can answer it generally.
+3. Be analytical, professional, and use Markdown for formatting.`;
+
+                            const validatedModel = sanitizeModel(CONFIG.model);
+                            if (loadingText) loadingText.innerText = `Calling Gemini API (${validatedModel})...`;
+                            
+                            try {
+                                aiResponse = await this.callGemini(text, contextBlock, sysPrompt, validatedModel);
+                            } catch (apiError) {
+                                console.error("Live API Error:", apiError);
+                                
+                                if (validatedModel !== "gemini-1.5-flash") {
+                                    app.ui.showToast(`Model failed. Retrying with safe model (gemini-1.5-flash)...`, "warning");
+                                    if (loadingText) loadingText.innerText = "Retrying with Gemini 1.5 Flash...";
+                                    try {
+                                        aiResponse = await this.callGemini(text, contextBlock, sysPrompt, "gemini-1.5-flash");
+                                        CONFIG.model = "gemini-1.5-flash";
+                                        app.storage.saveSettings();
+                                    } catch (retryError) {
+                                        app.setMode(MODES.FALLBACK);
+                                        app.ui.showToast(`Live AI unavailable — using local intelligence mode`, "error");
+                                        aiResponse = this.generateLocalResponse(searchResults, text);
+                                    }
+                                } else {
+                                    app.setMode(MODES.FALLBACK);
+                                    app.ui.showToast(`Live AI unavailable — using local intelligence mode`, "error");
+                                    aiResponse = this.generateLocalResponse(searchResults, text);
+                                }
+                            }
+                        }
+                        
+                        this.appendMessage('ai', aiResponse, retrievedInfo);
+
+                    } catch (e) {
+                        console.error("Chat Error:", e);
+                        this.appendMessage('ai', `**System Error:** \n\`\`\`text\n${e.message}\n\`\`\`\n\nA critical system error occurred.`);
+                    } finally {
+                        if (loadingEl) loadingEl.classList.add('hidden');
+                        sendBtn.disabled = false;
+                        inputEl.disabled = false;
+                        inputEl.focus();
+                    }
+                },
+
+                async callGemini(userPrompt, context, sysPrompt, targetModel) {
+                    const safeModel = sanitizeModel(targetModel);
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${safeModel}:generateContent?key=${API_KEY}`;
+                    
+                    const payload = {
+                        systemInstruction: { parts: [{ text: sysPrompt }] },
+                        contents: [{ parts: [{ text: `CONTEXT:\n${context}\n\nUSER QUESTION:\n${userPrompt}` }] }],
+                        generationConfig: { temperature: CONFIG.temperature }
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error("404_MODEL_NOT_FOUND");
+                        }
+                        const errText = await response.text();
+                        throw new Error(`API Error ${response.status}: ${errText}`);
+                    }
+
+                    const data = await response.json();
+                    if (!data.candidates || !data.candidates[0].content) {
+                        throw new Error("Invalid response format from Gemini API.");
+                    }
+
+                    return data.candidates[0].content.parts[0].text;
+                },
+
+                appendMessage(role, rawText, retrievedInfo = []) {
+                    const container = document.getElementById('chat-messages');
+                    if (!container) return;
+                    
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `flex gap-3 md:gap-4 animate-fade-in max-w-4xl mx-auto w-full ${role === 'user' ? 'flex-row-reverse' : ''}`;
+                    
+                    const avatar = role === 'user' 
+                        ? `<div class="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center shrink-0 border border-white/10 shadow-inner"><i class="fa-solid fa-user text-xs text-gray-400"></i></div>`
+                        : `<div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0 shadow-lg border border-brand-500"><i class="fa-solid fa-bolt text-xs text-white"></i></div>`;
+                    
+                    let processedText = rawText;
+                    let uniqueSources = [];
+
+                    if (role === 'ai' && retrievedInfo.length > 0) {
+                        const citationRegex = /\[Citation:\s*([^\]]+)\]/g;
+                        processedText = processedText.replace(citationRegex, (match, chunkId) => {
+                            const info = retrievedInfo.find(r => r.id === chunkId);
+                            if (info && !uniqueSources.some(s => s.id === info.id)) {
+                                uniqueSources.push(info);
+                            }
+                            const label = info ? `${info.title.substring(0, 20)} • Pg ${info.pageNum}` : chunkId;
+                            return `<span class="citation-chip cursor-pointer" title="Jump to Source" onclick="app.viewer.openFromChunk('${chunkId}')"><i class="fa-solid fa-file-text"></i> ${label}</span>`;
+                        });
+
+                        STATE.chatHistory.push({ role, text: rawText, retrievedInfo });
+                        const msgIndex = STATE.chatHistory.length - 1;
+                        
+                        processedText += `\n\n<div class="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-2 items-center">
+                            <span class="text-xs text-gray-400 mr-2 font-medium">Sources:</span>
+                            ${uniqueSources.map(source => `<span class="citation-chip cursor-pointer inline-flex items-center gap-1.5" title="Jump to Source" onclick="app.viewer.openFromChunk('${source.id}')">
+                                <i class="fa-solid fa-book-open"></i> ${source.title.substring(0,25)}... <span class="opacity-50">|</span> Pg ${source.pageNum}
+                            </span>`).join('')}
+                            <button onclick="app.sources.show(${msgIndex})" class="ml-auto text-xs glass-button px-3 py-1 rounded text-brand-300 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass-plus"></i> Show Evidence</button>
+                        </div>`;
+
+                    } else {
+                        STATE.chatHistory.push({ role, text: rawText, retrievedInfo });
+                    }
+
+                    const cleanHTML = DOMPurify.sanitize(marked.parse(processedText), { ADD_ATTR: ['title', 'onclick'] });
+
+                    const bubbleClass = role === 'user' 
+                        ? 'bg-gradient-to-br from-brand-600 to-indigo-800 text-white rounded-2xl rounded-tr-sm' 
+                        : 'glass-panel text-gray-200 rounded-2xl rounded-tl-sm markdown-body border-white/5';
+
+                    msgDiv.innerHTML = `
+                        ${avatar}
+                        <div class="flex-1 space-y-2 ${role === 'user' ? 'flex flex-col items-end' : ''} overflow-hidden min-w-0">
+                            <div class="${bubbleClass} p-4 md:p-5 w-fit max-w-full shadow-md break-words overflow-x-auto">
+                                ${role === 'user' ? DOMPurify.sanitize(rawText) : cleanHTML}
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(msgDiv);
+                    
+                    msgDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+
+                    setTimeout(() => {
+                        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                    }, 50);
+                },
+
+                appendWelcomeMessage() {
+                    const container = document.getElementById('chat-messages');
+                    if (!container) return;
+                    
+                    container.innerHTML = `
+                        <div class="flex gap-3 md:gap-4 animate-fade-in max-w-4xl mx-auto w-full">
+                            <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0 shadow-lg border border-brand-500">
+                                <i class="fa-solid fa-bolt text-xs text-white"></i>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <div class="glass-panel p-5 rounded-2xl rounded-tl-sm text-sm text-gray-300 shadow-sm border-white/5">
+                                    <h3 class="font-semibold text-white mb-2 text-base">Atlas SRE Initialization Complete</h3>
+                                    <p class="mb-3">I am your site reliability engineering assistant. I analyze incident reports, postmortems, and system architectures using local Retrieval-Augmented Generation (RAG).</p>
+                                    <div class="bg-dark-800/80 border border-white/5 rounded-lg p-3 text-xs text-gray-400 mb-3">
+                                        <strong>System Architecture:</strong> Atlas operates in a strict 3-mode system. If an API key is provided, it uses <strong>Live Mode</strong>. Otherwise, it defaults to <strong>Demo Mode</strong> (local heuristics).
+                                    </div>
+                                    <p class="font-medium text-gray-200 mt-4 mb-2">Getting Started:</p>
+                                    <ul class="space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <i class="fa-solid fa-1 text-brand-400 mt-0.5"></i> 
+                                            <span>Load the Demo Data or upload your own PDFs in the <strong>Knowledge Base</strong>.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i class="fa-solid fa-2 text-brand-400 mt-0.5"></i> 
+                                            <span>Configure your Gemini API key in Settings (Required for Live AI generation).</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i class="fa-solid fa-3 text-brand-400 mt-0.5"></i> 
+                                            <span>Ask me to summarize incidents, find root causes, or suggest remediations. Click on citations to view the full source document directly on the referenced page!</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                clearHistoryUI() {
+                    STATE.chatHistory = [];
+                    this.appendWelcomeMessage();
+                    app.sources.close();
+                },
+
+                clearHistory() {
+                    app.ui.confirmAction(
+                        "Clear Chat",
+                        "Are you sure you want to clear the current chat session?",
+                        () => {
+                            app.chat.clearHistoryUI();
+                            app.ui.showToast("Chat session cleared.", "info");
+                        }
+                    );
+                }
+            }
+        };
+
+        // Init App On Load
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
