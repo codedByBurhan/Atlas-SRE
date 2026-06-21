@@ -201,7 +201,7 @@
         </aside>
 
         <!-- Center Content Area -->
-        <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-dark-900/50" id="main-content">
+        <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-dark-900/50 transition-all duration-300" id="main-content">
             
             <!-- View: Chat -->
             <section id="view-chat" class="view-section flex flex-col h-full absolute inset-0"> 
@@ -378,9 +378,11 @@
             <div class="flex items-center gap-1 md:gap-3 shrink-0 ml-4">
                 <!-- PDF Controls -->
                 <div id="pdf-toolbar" class="hidden flex items-center bg-dark-950 border border-white/10 rounded-lg p-1 shadow-inner">
+                    <button onclick="app.viewer.onPrevPage()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Previous Page"><i class="fa-solid fa-chevron-up text-xs"></i></button>
                     <button onclick="app.viewer.zoomOut()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Zoom Out"><i class="fa-solid fa-minus text-xs"></i></button>
                     <div class="px-2 text-xs font-mono text-gray-300 min-w-[3rem] text-center select-none" id="viewer-zoom-level">100%</div>
                     <button onclick="app.viewer.zoomIn()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Zoom In"><i class="fa-solid fa-plus text-xs"></i></button>
+                    <button onclick="app.viewer.onNextPage()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Next Page"><i class="fa-solid fa-chevron-down text-xs"></i></button>
                 </div>
                 
                 <button onclick="app.viewer.close()" class="w-10 h-10 rounded-lg text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-400 transition-colors focus:outline-none flex items-center justify-center border border-transparent hover:border-red-500/30">
@@ -445,8 +447,8 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wide" for="setting-model">Live Mode AI Model</label>
                     <select id="setting-model" class="w-full bg-dark-950 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none cursor-pointer">
-                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Default)</option>
-                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <option value="gemini-3.5-flash">Gemini 3.5 Flash (Default)</option>
+                        <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
                     </select>
                 </div>
                 
@@ -511,19 +513,19 @@
         };
 
         const VALID_MODELS = [
-            "gemini-1.5-flash",
-            "gemini-1.5-pro"
+            "gemini-3.5-flash",
+            "gemini-3.5-pro"
         ];
 
         function sanitizeModel(model) {
             if (VALID_MODELS.includes(model)) return model;
-            return "gemini-1.5-flash"; // Strict Ultimate Fallback
+            return "gemini-3.5-flash"; // Strict Ultimate Fallback
         }
 
         let API_KEY = "";
 
         const CONFIG = {
-            model: "gemini-1.5-flash", 
+            model: "gemini-3.5-flash", 
             chunkSize: 250, 
             chunkOverlap: 50,
             topK: 5,
@@ -865,7 +867,7 @@
                         if (VALID_MODELS.includes(CONFIG.model)) {
                             modelSelect.value = CONFIG.model;
                         } else {
-                            modelSelect.value = "gemini-1.5-flash";
+                            modelSelect.value = "gemini-3.5-flash";
                         }
                     }
                     
@@ -902,16 +904,22 @@
                     if (modelSelect) {
                         let selectedModel = modelSelect.value;
                         if (!VALID_MODELS.includes(selectedModel)) {
-                            selectedModel = "gemini-1.5-flash";
+                            selectedModel = "gemini-3.5-flash";
                         }
                         CONFIG.model = selectedModel;
                     }
                     
                     const topKInput = document.getElementById('setting-top-k');
-                    if (topKInput) CONFIG.topK = parseInt(topKInput.value) || 5;
+                    if (topKInput) {
+                        const parsedTopK = parseInt(topKInput.value);
+                        CONFIG.topK = isNaN(parsedTopK) ? 5 : parsedTopK;
+                    }
                     
                     const tempInput = document.getElementById('setting-temp');
-                    if (tempInput) CONFIG.temperature = parseFloat(tempInput.value) || 0.2;
+                    if (tempInput) {
+                        const parsedTemp = parseFloat(tempInput.value);
+                        CONFIG.temperature = isNaN(parsedTemp) ? 0.2 : parsedTemp;
+                    }
                     
                     app.storage.saveSettings();
                     this.closeSettings();
@@ -972,11 +980,6 @@
                 },
                 loadSettings() {
                     try {
-                        let savedModel = localStorage.getItem("model");
-                        if (savedModel && !VALID_MODELS.includes(savedModel)) {
-                            localStorage.removeItem("model");
-                        }
-
                         const data = JSON.parse(localStorage.getItem('atlas_sre_settings'));
                         if (data) {
                             API_KEY = data.API_KEY || "";
@@ -985,7 +988,7 @@
                             if (data.model && VALID_MODELS.includes(data.model)) {
                                 CONFIG.model = data.model;
                             } else {
-                                CONFIG.model = "gemini-1.5-flash";
+                                CONFIG.model = "gemini-3.5-flash";
                             }
                             
                             CONFIG.topK = data.topK || 5;
@@ -995,7 +998,7 @@
                         }
                     } catch(e) {
                         console.warn("No valid settings found in storage, using defaults.");
-                        CONFIG.model = "gemini-1.5-flash";
+                        CONFIG.model = "gemini-3.5-flash";
                         app.updateModeCheck();
                     }
                     this.saveSettings();
@@ -1038,7 +1041,7 @@
                     if (sourcesPanel) sourcesPanel.classList.remove('translate-x-full');
                     
                     const mainContent = document.getElementById('main-content');
-                    if (mainContent) mainContent.style.marginRight = '20rem';
+                    if (mainContent && window.innerWidth >= 768) mainContent.style.marginRight = '20rem';
                 },
                 close() {
                     const sourcesPanel = document.getElementById('sources-panel');
@@ -1129,8 +1132,6 @@
                             const loadingTask = pdfjsLib.getDocument({data: pdfDataCopy});
                             this.pdfInstance = await loadingTask.promise;
                             
-                            const pageCountEl = document.getElementById('page_count');
-                            if (pageCountEl) pageCountEl.innerText = this.pdfInstance.numPages;
                             if (totalPageNum) totalPageNum.innerText = this.pdfInstance.numPages;
 
                             // Create placeholders for lazy loading
@@ -1250,8 +1251,6 @@
                         entries.forEach(entry => {
                             if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
                                 const pageNum = entry.target.dataset.page;
-                                const pageNumEl = document.getElementById('page_num');
-                                if (pageNumEl) pageNumEl.innerText = pageNum;
                                 
                                 const currentPageNumEl = document.getElementById('current-page-num');
                                 if (currentPageNumEl) currentPageNumEl.innerText = pageNum;
@@ -1343,7 +1342,7 @@
                     });
                     
                     // The observer will automatically catch visible ones and re-render them.
-                    const pageNumEl = document.getElementById('page_num');
+                    const pageNumEl = document.getElementById('current-page-num');
                     if (pageNumEl) {
                         const currPage = parseInt(pageNumEl.innerText);
                         const targetDiv = document.getElementById(`pdf-page-${currPage}`);
@@ -1368,7 +1367,7 @@
 
                 onPrevPage() {
                     if (!this.pdfInstance) return;
-                    const pageNumEl = document.getElementById('page_num');
+                    const pageNumEl = document.getElementById('current-page-num');
                     if (!pageNumEl) return;
                     
                     const curr = parseInt(pageNumEl.innerText);
@@ -1380,7 +1379,7 @@
 
                 onNextPage() {
                     if (!this.pdfInstance) return;
-                    const pageNumEl = document.getElementById('page_num');
+                    const pageNumEl = document.getElementById('current-page-num');
                     if (!pageNumEl) return;
                     
                     const curr = parseInt(pageNumEl.innerText);
@@ -1843,22 +1842,22 @@ CRITICAL RULES:
                             } catch (apiError) {
                                 console.error("Live API Error:", apiError);
                                 
-                                if (validatedModel !== "gemini-1.5-flash") {
-                                    app.ui.showToast(`Model failed. Retrying with safe model (gemini-1.5-flash)...`, "warning");
-                                    if (loadingText) loadingText.innerText = "Retrying with Gemini 1.5 Flash...";
+                                if (validatedModel !== "gemini-3.5-flash") {
+                                    app.ui.showToast(`Model failed. Retrying with safe model (gemini-3.5-flash)...`, "warning");
+                                    if (loadingText) loadingText.innerText = "Retrying with Gemini 3.5 Flash...";
                                     try {
-                                        aiResponse = await this.callGemini(text, contextBlock, sysPrompt, "gemini-1.5-flash");
-                                        CONFIG.model = "gemini-1.5-flash";
+                                        aiResponse = await this.callGemini(text, contextBlock, sysPrompt, "gemini-3.5-flash");
+                                        CONFIG.model = "gemini-3.5-flash";
                                         app.storage.saveSettings();
                                     } catch (retryError) {
                                         app.setMode(MODES.FALLBACK);
                                         app.ui.showToast(`Live AI unavailable — using local intelligence mode`, "error");
-                                        aiResponse = this.generateLocalResponse(searchResults, text);
+                                        aiResponse = `**API Connection Error:** \`${retryError.message}\`\n\n*Falling back to local search...*\n\n---\n\n` + this.generateLocalResponse(searchResults, text);
                                     }
                                 } else {
                                     app.setMode(MODES.FALLBACK);
                                     app.ui.showToast(`Live AI unavailable — using local intelligence mode`, "error");
-                                    aiResponse = this.generateLocalResponse(searchResults, text);
+                                    aiResponse = `**API Connection Error:** \`${apiError.message}\`\n\n*Falling back to local search...*\n\n---\n\n` + this.generateLocalResponse(searchResults, text);
                                 }
                             }
                         }
@@ -1878,11 +1877,10 @@ CRITICAL RULES:
 
                 async callGemini(userPrompt, context, sysPrompt, targetModel) {
                     const safeModel = sanitizeModel(targetModel);
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${safeModel}:generateContent?key=${API_KEY}`;
+                    const url = `https://generativelanguage.googleapis.com/v1/models/${safeModel}:generateContent?key=${API_KEY}`;
                     
                     const payload = {
-                        systemInstruction: { parts: [{ text: sysPrompt }] },
-                        contents: [{ parts: [{ text: `CONTEXT:\n${context}\n\nUSER QUESTION:\n${userPrompt}` }] }],
+                        contents: [{ parts: [{ text: `[SYSTEM INSTRUCTIONS]\n${sysPrompt}\n\n[CONTEXT]\n${context}\n\n[USER QUESTION]\n${userPrompt}` }] }],
                         generationConfig: { temperature: CONFIG.temperature }
                     };
 
