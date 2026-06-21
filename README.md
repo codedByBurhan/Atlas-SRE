@@ -11,7 +11,7 @@
 
 *Your zero-backend, privacy-first copilot for incident response, root cause analysis, and architecture exploration.*
 
-[Features](#-key-features) • [How it Works](#-how-it-works) • [Installation](#-getting-started) • [Architecture](#-architecture--design) • [Roadmap](#-roadmap)
+[Features](#-key-features) • [How it Works](#-how-it-works) • [Getting Started](#-getting-started) • [Architecture](#-architecture--design) • [Roadmap](#-roadmap)
 
 </div>
 
@@ -58,24 +58,44 @@ Atlas SRE operates on a straightforward but powerful client-side workflow:
 Atlas SRE is designed for immediate deployment. There are no databases to spin up, no Node modules to install, and no Docker containers to build.
 
 ### Prerequisites
+
 * A modern web browser (Chrome, Edge, Firefox, Safari).
-* *(Optional but recommended)* A free [Google Gemini API Key](https://aistudio.google.com/app/apikey).
+* A free [Google Gemini API Key](https://aistudio.google.com/app/apikey).
 
-### Installation (Zero-Step Setup)
-1.  Clone this repository or download the `index.html` file.
-```bash
-    git clone [https://github.com/yourusername/atlas-sre.git](https://github.com/yourusername/atlas-sre.git)
-    ```
-2.  Double-click `index.html` to open it directly in your browser.
-3.  *That's it.*
+### 1. Local Installation
 
-### Configuration
-To unlock the full conversational power of the LLM:
-1.  Open Atlas SRE in your browser.
-2.  Click **Settings** in the bottom left sidebar.
-3.  Paste your Gemini API Key into the designated field.
-4.  Select your preferred model (e.g., `gemini-1.5-flash`).
-5.  Click **Save Configuration**.
+You can run Atlas SRE locally in seconds. First, clone the repository or download the source code:
+
+`git clone https://github.com/yourusername/atlas-sre.git`
+
+**Option A: Quick Run**
+Simply double-click the `index.html` file to open it directly in your browser.
+
+**Option B: Local Server (Highly Recommended)**
+*Crucial Note:* Because PDF.js utilizes Web Workers for parsing, strict modern browsers may block PDF rendering if run directly via the `file://` protocol due to CORS security policies. Serving the file through a lightweight local server prevents these errors.
+
+* **Using Python:** Run `python -m http.server 8000` in the directory.
+* **Using Node.js:** Run `npx serve` in the directory.
+* **Using VS Code:** Right-click `index.html` and select "Open with Live Server".
+
+### 2. Configuration
+
+To unlock the full conversational power of the LLM, you must configure your API key inside the application:
+
+1. Open Atlas SRE in your browser.
+2. Click **Settings** (the slider icon) in the bottom-left sidebar.
+3. Paste your Gemini API Key into the designated field.
+4. Select your preferred model (e.g., `gemini-1.5-flash` is recommended for speed and efficiency).
+5. Click **Save Configuration**. The engine status in the sidebar will update to "Live Mode Active".
+
+### 3. Deployment to Production
+
+Because Atlas SRE is a 100% client-side, single HTML file application, deploying it is incredibly fast and completely free. 
+
+* **Vercel / Netlify:** Simply drag and drop the project folder into your dashboard, or link your GitHub repository. It will deploy instantly without any build commands.
+* **GitHub Pages:** Push the file to a repository, go to Settings > Pages, and deploy straight from your `main` branch.
+
+*(Note: Users will input their own Gemini API keys in the settings panel on the live deployed site; your personal key is not stored in the codebase).*
 
 ---
 
@@ -95,25 +115,25 @@ Atlas SRE proves that powerful AI tools can be built with vanilla web technologi
 
 ## 🖥 User Interface
 
-*(Add screenshots here showing the chat interface, the split-screen PDF viewer, and the settings panel)*
+*(Placeholder for Screenshots)*
 
-* **View 1:** The Chat Interface (Incident Copilot)
-* **View 2:** The Knowledge Base (Drag-and-drop document management)
-* **View 3:** The Embedded PDF Viewer (Showing highlighted citations and page navigation)
+* **The Chat Interface:** An intuitive, split-pane view where you chat with the incident copilot on the left and view documents on the right.
+* **The Knowledge Base:** A drag-and-drop zone to manage your internal incident documentation.
+* **The PDF Engine:** A continuous-scroll PDF reader that automatically jumps to and highlights AI-cited evidence.
 
 ---
 
 ## ⚠️ Limitations & Known Issues
 
-* **Memory Constraints:** Because documents are stored in local browser memory, ingesting thousands of massive PDFs simultaneously may cause browser sluggishness. It is optimized for focused runbook and incident directories.
-* **Lexical vs. Semantic Search:** The current retrieval engine uses advanced keyword/TF-IDF logic rather than vector embeddings. While fast and entirely local, it may require slightly more specific search terms than a heavyweight vector database.
+* **Memory Constraints:** Because documents are stored in local browser memory, ingesting hundreds of massive PDFs simultaneously may cause browser sluggishness or crash the tab. It is optimized for focused, highly-relevant runbook directories.
+* **Lexical vs. Semantic Search:** The current retrieval engine uses advanced keyword/TF-IDF logic rather than heavy vector embeddings. While incredibly fast and entirely local, it may require slightly more specific search terms than a backend vector database.
 
 ---
 
 ## 🗺 Roadmap
 
-* [ ] **IndexedDB Support:** Move document storage from volatile state to persistent browser storage (IndexedDB) so uploaded PDFs remain available between sessions.
-* [ ] **Web-Worker Processing:** Offload the PDF chunking pipeline to background web workers to prevent UI blocking during massive document uploads.
+* [ ] **IndexedDB Support:** Move document storage from volatile state to persistent browser storage (IndexedDB) so uploaded PDFs remain available between browser sessions.
+* [ ] **Web-Worker Processing:** Offload the PDF chunking pipeline to background web workers to prevent UI blocking during large document uploads.
 * [ ] **Export/Import Contexts:** Allow teams to download their processed knowledge base as a single JSON file to quickly share "incident workspaces" with other engineers.
 * [ ] **Semantic WebGL Embeddings:** Explore lightweight, browser-based embedding models (like Transformers.js) to upgrade from lexical to semantic search without leaving the client.
 
@@ -137,8 +157,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 📩 Contact
-
-**Project Maintainer** - [Your Name / Team Name]
-**Email** - support@atlassre-example.com
-**Repository** - [https://github.com/yourusername/atlas-sre](https://github.com/yourusername/atlas-sre)
