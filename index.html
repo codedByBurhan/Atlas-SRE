@@ -2197,6 +2197,28 @@ CRITICAL RULES:
                             <button onclick="app.sources.show(${msgIndex})" class="ml-auto text-xs glass-button px-3 py-1 rounded text-brand-300 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass-plus"></i> Show Evidence</button>
                         </div>`;
 
+                        const docsConsulted = new Set(retrievedInfo.map(info => info.title)).size;
+                        const chunksRetrieved = retrievedInfo.length;
+                        const scores = retrievedInfo.map(info => (info.score || 0).toFixed(2)).join(', ');
+                        
+                        const highestScore = Math.max(...retrievedInfo.map(info => info.score || 0));
+                        let confidence = "Low";
+                        if (highestScore > 10) confidence = "High";
+                        else if (highestScore > 3) confidence = "Medium";
+
+                        processedText += `
+                        <details class="text-[10px] text-gray-500 bg-dark-900/50 border border-white/5 rounded p-2 mt-3 cursor-pointer">
+                            <summary class="font-medium hover:text-gray-300 select-none flex items-center gap-1 outline-none">
+                                <span>⚙️ RAG Transparency Log</span>
+                            </summary>
+                            <div class="mt-2 font-mono space-y-1 pl-4 border-l border-white/10 ml-1">
+                                <div><span class="text-gray-400">Documents Consulted:</span> ${docsConsulted}</div>
+                                <div><span class="text-gray-400">Chunks Retrieved:</span> ${chunksRetrieved}</div>
+                                <div><span class="text-gray-400">Retrieval Scores:</span> [${scores}]</div>
+                                <div><span class="text-gray-400">Confidence Estimate:</span> <span class="${confidence === 'High' ? 'text-green-400' : confidence === 'Medium' ? 'text-yellow-400' : 'text-red-400'}">${confidence}</span></div>
+                            </div>
+                        </details>`;
+
                     } else {
                         STATE.chatHistory.push({ role, text: rawText, retrievedInfo });
                     }
