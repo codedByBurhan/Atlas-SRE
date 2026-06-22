@@ -885,6 +885,67 @@
                 }
             },
 
+            // --- Document Intelligence Layer ---
+            intelligence: {
+                extractDocumentMetadata(title, content) {
+                    const docType = this.classifyDocumentType(title, content);
+                    const services = this.extractServices(content);
+                    const incidentData = this.extractIncidentData(content);
+
+                    return {
+                        documentType: docType,
+                        services: services,
+                        incidentData: incidentData,
+                        extractedAt: new Date().toISOString()
+                    };
+                },
+
+                classifyDocumentType(title, content) {
+                    const text = (title + " " + content).toLowerCase();
+                    if (/\b(postmortem|post-mortem|rca|root cause analysis)\b/i.test(text)) return "Postmortem";
+                    if (/\b(runbook|playbook)\b/i.test(text)) return "Runbook";
+                    if (/\b(incident report|sev-?1|sev-?2)\b/i.test(text)) return "Incident Report";
+                    if (/\b(architecture|diagram|design doc)\b/i.test(text)) return "Architecture Document";
+                    if (/\b(service ownership|owner)\b/i.test(text)) return "Service Ownership";
+                    if (/\b(escalation policy|on-call)\b/i.test(text)) return "Escalation Policy";
+                    if (/\b(operational guide|ops guide|how-to)\b/i.test(text)) return "Operational Guide";
+                    return "General Documentation";
+                },
+
+                extractServices(content) {
+                    const knownServices = [
+                        "Checkout Service", "Redis", "PostgreSQL", "Kafka", 
+                        "Kubernetes", "API Gateway", "MySQL", "MongoDB",
+                        "Elasticsearch", "RabbitMQ", "Nginx", "Docker", "AWS", "GCP"
+                    ];
+                    
+                    const foundServices = [];
+                    knownServices.forEach(service => {
+                        const regex = new RegExp("\\b" + service.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", "i");
+                        if (regex.test(content)) {
+                            foundServices.push(service);
+                        }
+                    });
+                    return foundServices;
+                },
+
+                extractIncidentData(content) {
+                    const extractSection = (headingRegex) => {
+                        const regex = new RegExp(`${headingRegex}\\s*([\\s\\S]*?)(?=(?:\\n[A-Z][A-Za-z\\s]+:)|(?:\\n\\s*\\n)|$)`, 'i');
+                        const match = content.match(regex);
+                        return match && match[1] ? match[1].trim() : null;
+                    };
+
+                    return {
+                        rootCause: extractSection("(?:Root Cause|Root Cause Analysis):?"),
+                        impact: extractSection("Impact:?"),
+                        resolution: extractSection("(?:Resolution|Remediation):?"),
+                        affectedSystems: extractSection("(?:Affected Systems|Affected Services):?"),
+                        timelineEvents: extractSection("Timeline:?")
+                    };
+                }
+            },
+
             // --- Navigation ---
             nav: {
                 enterWorkspace() {
@@ -1754,6 +1815,8 @@
                         currentPage++;
                     }
 
+                    const extractedMetadata = app.intelligence.extractDocumentMetadata(title, cleanText);
+
                     STATE.documents.push({
                         id,
                         title,
@@ -1761,7 +1824,8 @@
                         content: cleanText,
                         pdfData,
                         dateAdded: new Date().toISOString(),
-                        chunkCount: chunkObjects.length
+                        chunkCount: chunkObjects.length,
+                        metadata: extractedMetadata
                     });
                     
                     STATE.chunks.push(...chunkObjects);
@@ -1915,7 +1979,16 @@
                             score *= (textMatchCount * 1.2); 
                         }
 
-                        return { chunk, score };
+                        let confidence = "Low";
+                        if (score > 10 && textMatchCount >= 3) confidence = "High";
+                        else if (score > 3 && textMatchCount >= 1) confidence = "Medium";
+
+                        return { 
+                            chunk, 
+                            score,
+                            overlapCount: textMatchCount,
+                            confidence
+                        };
                     });
 
                     scoredChunks.sort((a, b) => b.score - a.score);
