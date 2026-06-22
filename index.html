@@ -142,6 +142,178 @@
 </head>
 <body class="flex h-screen w-full font-sans antialiased text-gray-200 flex-col md:flex-row overflow-hidden">
 
+    <!-- Landing Page Overlay -->
+    <div id="view-landing" class="fixed inset-0 z-[100] bg-dark-900 overflow-y-auto flex flex-col font-sans text-gray-200 transition-opacity duration-500">
+        
+        <!-- Navbar -->
+        <header class="w-full glass-panel border-b border-white/5 py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-400/30">
+                    <i class="fa-solid fa-shield-halved text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base tracking-tight text-white leading-none">Atlas SRE</h1>
+                </div>
+            </div>
+            <button onclick="app.nav.enterWorkspace()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-brand-500/20 focus:outline-none focus:ring-2 focus:ring-brand-400">
+                Enter Workspace
+            </button>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col items-center text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-8">
+                <i class="fa-solid fa-bolt"></i> Local First Incident Intelligence
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6 leading-tight">
+                Operational Knowledge, <br class="hidden md:block" /> instantly accessible.
+            </h1>
+            <p class="text-lg md:text-xl text-gray-400 max-w-3xl mb-10 leading-relaxed">
+                Atlas SRE is a specialized NotebookLM-style platform for Site Reliability Engineers. It unifies your postmortems, RCAs, and architecture diagrams into a single, queryable local intelligence workspace.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <button onclick="app.nav.enterWorkspace()" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3.5 rounded-lg text-base font-semibold transition-all shadow-xl shadow-brand-500/20 flex items-center justify-center gap-3">
+                    Launch Incident Copilot <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <a href="#how-it-works" class="glass-button text-white px-8 py-3.5 rounded-lg text-base font-medium transition-all flex items-center justify-center gap-3 border border-white/10 hover:bg-white/5">
+                    See Architecture <i class="fa-solid fa-diagram-project"></i>
+                </a>
+            </div>
+        </section>
+
+        <!-- Mockup Interface Preview -->
+        <section class="w-full max-w-5xl mx-auto px-6 pb-20 md:pb-32 relative">
+            <div class="absolute inset-0 bg-brand-500/20 blur-[120px] rounded-full pointer-events-none opacity-50"></div>
+            <div class="glass-panel border border-white/10 rounded-2xl p-2 shadow-2xl relative z-10 overflow-hidden transform hover:scale-[1.01] transition-transform duration-500">
+                <div class="bg-dark-950 rounded-xl overflow-hidden flex flex-col h-[400px]">
+                    <!-- Fake header -->
+                    <div class="h-10 border-b border-white/5 flex items-center px-4 gap-2 bg-dark-900 shrink-0">
+                        <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+                    </div>
+                    <!-- Fake UI -->
+                    <div class="flex-1 flex bg-dark-900/50">
+                        <div class="w-48 border-r border-white/5 p-4 flex flex-col gap-2">
+                            <div class="h-6 w-full bg-white/5 rounded"></div>
+                            <div class="h-6 w-3/4 bg-white/5 rounded"></div>
+                        </div>
+                        <div class="flex-1 p-6 flex flex-col gap-4 relative">
+                            <div class="self-start max-w-[80%] bg-dark-800 border border-white/5 p-4 rounded-xl rounded-tl-none">
+                                <div class="h-4 w-48 bg-white/10 rounded mb-2"></div>
+                                <div class="h-3 w-64 bg-white/5 rounded mb-1"></div>
+                                <div class="h-3 w-56 bg-white/5 rounded"></div>
+                            </div>
+                            <div class="self-end max-w-[80%] bg-brand-600/20 border border-brand-500/20 p-4 rounded-xl rounded-tr-none">
+                                <div class="h-4 w-32 bg-white/20 rounded mb-2"></div>
+                                <div class="h-3 w-56 bg-white/10 rounded mb-1"></div>
+                                <div class="h-3 w-40 bg-white/10 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works (Architecture) -->
+        <section id="how-it-works" class="w-full bg-dark-950 border-t border-b border-white/5 py-24">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold text-white mb-4">Strictly Local RAG Pipeline</h2>
+                    <p class="text-gray-400 max-w-2xl mx-auto">Atlas operates entirely within your browser to ensure security and zero latency for your most sensitive operational documentation.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+                    <!-- Line connecting steps (desktop) -->
+                    <div class="hidden md:block absolute top-1/2 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-brand-500/0 via-brand-500/50 to-brand-500/0 transform -translate-y-1/2"></div>
+                    
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
+                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2">1. Ingest</h3>
+                        <p class="text-sm text-gray-400">Drop your PDFs, RCAs, and diagrams directly into the secure workspace.</p>
+                    </div>
+
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
+                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
+                            <i class="fa-solid fa-gears"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2">2. Index</h3>
+                        <p class="text-sm text-gray-400">Local TF-IDF lexical engine chunks and indexes text entirely client-side.</p>
+                    </div>
+
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
+                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2">3. Retrieve</h3>
+                        <p class="text-sm text-gray-400">Lightning-fast keyword overlap scoring fetches the most relevant context.</p>
+                    </div>
+
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
+                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2">4. Generate</h3>
+                        <p class="text-sm text-gray-400">Gemini synthesizes a cited response using only your provided context.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Capabilities -->
+        <section class="w-full max-w-6xl mx-auto px-6 py-24">
+            <h2 class="text-3xl font-bold text-white mb-12 text-center">Core Capabilities</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-colors">
+                    <div class="w-10 h-10 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-bolt text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">AI Incident Investigator</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        A specialized chat interface designed for querying complex operational history. Ask about recent incidents, root causes, or general system architecture, and receive direct answers.
+                    </p>
+                    <ul class="text-sm text-gray-300 space-y-2">
+                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Explicit Source Citations</li>
+                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Embedded Document Viewer</li>
+                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Configurable LLM Parameters</li>
+                    </ul>
+                </div>
+
+                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-colors">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-file-lines text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Local Knowledge Base</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        Your private repository of documentation. Upload PDFs seamlessly, and let the local engine handle text extraction, chunking, and indexing without exposing sensitive data.
+                    </p>
+                    <ul class="text-sm text-gray-300 space-y-2">
+                        <li><i class="fa-solid fa-check text-indigo-500 mr-2"></i> Preloaded SRE Demo Dataset</li>
+                        <li><i class="fa-solid fa-check text-indigo-500 mr-2"></i> Drag & Drop Ingestion</li>
+                        <li><i class="fa-solid fa-check text-indigo-500 mr-2"></i> Real-time Lexical Search</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="w-full bg-gradient-to-t from-brand-900/20 to-transparent py-24 text-center px-6 mt-auto border-t border-white/5">
+            <h2 class="text-3xl font-bold text-white mb-6">Ready to query your infrastructure?</h2>
+            <p class="text-gray-400 mb-8 max-w-lg mx-auto">Enter the workspace to load the demo dataset or upload your own operational documentation.</p>
+            <button onclick="app.nav.enterWorkspace()" class="bg-white text-dark-950 px-8 py-3.5 rounded-lg text-base font-bold transition-all shadow-xl hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-white/30">
+                Enter Workspace
+            </button>
+        </section>
+        
+        <!-- Footer -->
+        <footer class="w-full py-6 text-center text-xs text-gray-600 border-t border-white/5">
+            <p>Atlas SRE. Built for incident intelligence.</p>
+        </footer>
+    </div>
+
     <!-- Global Demo Banner -->
     <div id="demo-banner" class="absolute top-0 left-0 w-full z-[60] bg-brand-600/95 backdrop-blur text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between animate-slide-down border-b border-brand-500 shadow-lg hidden">
         <div class="flex items-center gap-3 text-sm font-medium mb-2 md:mb-0">
@@ -715,6 +887,16 @@
 
             // --- Navigation ---
             nav: {
+                enterWorkspace() {
+                    const landing = document.getElementById('view-landing');
+                    if (landing) {
+                        landing.classList.add('opacity-0');
+                        setTimeout(() => {
+                            landing.classList.add('hidden');
+                        }, 500); // Wait for transition
+                    }
+                    // Optional: You could switch to chat here, but it's already the default visible view underneath
+                },
                 switchView(viewId) {
                     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
                     const targetView = document.getElementById(`view-${viewId}`);
