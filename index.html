@@ -2076,6 +2076,19 @@
                                     contextBlock += `Document: ${res.chunk.docTitle}\n`;
                                     contextBlock += `Page: ${res.chunk.pageNum}\n`;
                                     contextBlock += `Text: ${res.chunk.text}\n`;
+                                    
+                                    const parentDoc = STATE.documents.find(d => d.title === res.chunk.docTitle);
+                                    if (parentDoc && parentDoc.metadata) {
+                                        contextBlock += `Metadata:\n`;
+                                        contextBlock += `- Document Type: ${parentDoc.metadata.documentType || 'Unknown'}\n`;
+                                        contextBlock += `- Services: ${parentDoc.metadata.services ? parentDoc.metadata.services.join(', ') : 'Unknown'}\n`;
+                                        if (parentDoc.metadata.incidentData) {
+                                            contextBlock += `- Root Cause: ${parentDoc.metadata.incidentData.rootCause || 'N/A'}\n`;
+                                            contextBlock += `- Impact: ${parentDoc.metadata.incidentData.impact || 'N/A'}\n`;
+                                            contextBlock += `- Resolution: ${parentDoc.metadata.incidentData.resolution || 'N/A'}\n`;
+                                        }
+                                    }
+                                    
                                     contextBlock += `--- END CHUNK ---\n\n`;
                                 });
                             } else {
@@ -2087,7 +2100,21 @@ You assist engineers with analyzing incidents, architectures, and answering gene
 CRITICAL RULES:
 1. ALWAYS prioritize the provided CONTEXT. If the context contains the answer, use it and ALWAYS cite the Chunk ID using EXACTLY this format: [Citation: id_here].
 2. If the user's question is unrelated to the context, or the context lacks the answer, use your general knowledge to answer the question helpfully. Do NOT state that you are missing context if you can answer it generally.
-3. Be analytical, professional, and use Markdown for formatting.`;
+3. Be analytical, professional, and use Markdown for formatting.
+4. If the user's query is explicitly asking about an incident, outage, failure, or root cause, you MUST format your entire response as an Incident Review Dashboard using exactly this template:
+
+### 🚨 Incident Investigation Summary
+
+Affected Systems: (List systems based on context)
+
+Impact:
+
+Root Cause:
+
+Resolution/Remediation:
+
+You MUST still append citations (e.g., [Citation: chunk_id]) to every claim within this dashboard structure.
+If the query is a general question (e.g., "What is Kubernetes?"), answer normally using standard paragraphs.`;
 
                             const validatedModel = sanitizeModel(CONFIG.model);
                             if (loadingText) loadingText.innerText = `Calling Gemini API (${validatedModel})...`;
