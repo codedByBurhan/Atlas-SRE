@@ -354,6 +354,9 @@
                     <i class="fa-solid fa-file-lines w-4 md:w-5 text-center"></i> Knowledge Base
                     <span id="nav-doc-count" class="ml-auto bg-dark-700 text-gray-300 border border-white/10 text-[10px] px-2 py-0.5 rounded-full">0</span>
                 </button>
+                <button onclick="app.nav.switchView('explorer')" class="nav-btn w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap" data-target="explorer">
+                    <i class="fa-solid fa-network-wired w-4 md:w-5 text-center"></i> Service Explorer
+                </button>
 
                 <div class="hidden md:block text-[10px] font-semibold text-gray-500 mb-2 px-2 mt-6 uppercase tracking-wider">System</div>
                 <button onclick="app.ui.openSettings()" class="w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap md:mt-0 mt-auto ml-auto md:ml-0">
@@ -506,6 +509,20 @@
                                 <!-- Items injected by JS -->
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-explorer" class="view-section hidden h-full absolute inset-0 flex flex-col p-4 md:p-6 overflow-y-auto mt-12 md:mt-0">
+                <div class="max-w-5xl mx-auto w-full space-y-6 pb-10">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-4 gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-white mb-1">Service Explorer</h2>
+                            <p class="text-sm text-gray-400">Map of operational dependencies</p>
+                        </div>
+                    </div>
+                    <div id="explorer-graph-container" class="glass-panel p-6 rounded-xl border border-white/5 bg-dark-800/30">
+                        <!-- Rendered ASCII Tree -->
                     </div>
                 </div>
             </section>
@@ -943,6 +960,77 @@
                         affectedSystems: extractSection("(?:Affected Systems|Affected Services):?"),
                         timelineEvents: extractSection("Timeline:?")
                     };
+                }
+            },
+
+            // --- Service Explorer ---
+            explorer: {
+                render() {
+                    const container = document.getElementById('explorer-graph-container');
+                    if (!container) return;
+
+                    const serviceMap = {};
+                    STATE.documents.forEach(doc => {
+                        if (doc.metadata && doc.metadata.services) {
+                            doc.metadata.services.forEach(service => {
+                                if (!serviceMap[service]) serviceMap[service] = [];
+                                if (!serviceMap[service].some(d => d.id === doc.id)) {
+                                    serviceMap[service].push(doc);
+                                }
+                            });
+                        }
+                    });
+
+                    const services = Object.keys(serviceMap).sort();
+
+                    if (services.length === 0) {
+                        container.innerHTML = `<div class="p-8 text-center text-gray-500 text-sm">No services discovered in operational documents yet.</div>`;
+                        return;
+                    }
+
+                    let html = `<div class="font-mono text-sm space-y-1">`;
+                    html += `<div class="text-brand-400 font-bold mb-4">Atlas Service Registry<br><span class="text-gray-500 font-normal">├── (Discovered Dependencies)</span></div>`;
+
+                    services.forEach((service, index) => {
+                        const isLastService = index === services.length - 1;
+                        const servicePrefix = isLastService ? "└──" : "├──";
+                        
+                        html += `
+                            <details class="group marker:hidden" open>
+                                <summary class="flex items-center cursor-pointer hover:bg-white/[0.02] py-1 rounded select-none outline-none">
+                                    <span class="text-gray-500 mr-2">${servicePrefix}</span>
+                                    <span class="text-gray-200 font-semibold group-open:text-brand-300 transition-colors">
+                                        <i class="fa-solid fa-server text-[10px] mr-1.5 opacity-70"></i>${service}
+                                    </span>
+                                    <span class="ml-2 text-[10px] bg-dark-700 text-gray-400 px-1.5 py-0.5 rounded border border-white/10">${serviceMap[service].length} ref${serviceMap[service].length > 1 ? 's' : ''}</span>
+                                </summary>
+                                <div class="ml-2 ${!isLastService ? 'border-l border-white/10' : 'border-l border-transparent'} pl-6 py-1 space-y-1 flex flex-col">
+                        `;
+
+                        const docs = serviceMap[service];
+                        docs.forEach((doc, docIndex) => {
+                            const isLastDoc = docIndex === docs.length - 1;
+                            const docPrefix = isLastDoc ? "└──" : "├──";
+                            const docType = doc.metadata && doc.metadata.documentType ? doc.metadata.documentType : 'Document';
+                            
+                            html += `
+                                    <div class="flex items-center text-gray-400 hover:text-white hover:bg-white/[0.02] py-0.5 rounded cursor-pointer transition-colors group/doc" onclick="app.viewer.open('${doc.id}', 1, '${service}')">
+                                        <span class="text-gray-600 mr-2 whitespace-pre">${docPrefix}</span>
+                                        <i class="fa-regular fa-file-lines text-[10px] mr-2 text-brand-500/50 group-hover/doc:text-brand-400"></i>
+                                        <span class="truncate max-w-sm mr-2">${doc.title}</span>
+                                        <span class="text-[9px] bg-brand-500/10 text-brand-300/70 px-1 py-0.5 rounded uppercase hidden md:inline-block">${docType}</span>
+                                    </div>
+                            `;
+                        });
+
+                        html += `
+                                </div>
+                            </details>
+                        `;
+                    });
+
+                    html += `</div>`;
+                    container.innerHTML = html;
                 }
             },
 
@@ -1832,6 +1920,7 @@
 
                     this.renderList();
                     app.ui.updateMetrics();
+                    if (app.explorer) app.explorer.render();
                 },
 
                 deleteDocument(id) {
@@ -1839,6 +1928,7 @@
                     STATE.chunks = STATE.chunks.filter(c => c.docId !== id);
                     this.renderList();
                     app.ui.updateMetrics();
+                    if (app.explorer) app.explorer.render();
                 },
 
                 clearAll() {
@@ -1853,6 +1943,7 @@
                             
                             this.renderList();
                             app.ui.updateMetrics();
+                            if (app.explorer) app.explorer.render();
                             app.chat.clearHistoryUI();
                             
                             const fileInput = document.getElementById('file-input');
