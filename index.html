@@ -2233,6 +2233,34 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                         if (highestScore > 10) confidence = "High";
                         else if (highestScore > 3) confidence = "Medium";
 
+                        const recommendedDocs = [];
+                        const seenDocIds = new Set();
+                        
+                        for (const info of retrievedInfo) {
+                            if (recommendedDocs.length >= 2) break;
+                            const parentDoc = STATE.documents.find(d => d.title === info.title);
+                            if (parentDoc && parentDoc.metadata && !seenDocIds.has(parentDoc.id)) {
+                                const docType = parentDoc.metadata.documentType;
+                                if (["Runbook", "Operational Guide", "Incident Report", "Escalation Policy"].includes(docType)) {
+                                    recommendedDocs.push({ id: parentDoc.id, title: parentDoc.title, type: docType });
+                                    seenDocIds.add(parentDoc.id);
+                                }
+                            }
+                        }
+
+                        if (recommendedDocs.length > 0) {
+                            processedText += `\n\n<div class="mt-4 pt-3 border-t border-white/10">
+                                <span class="text-xs text-gray-400 font-medium block mb-2">Recommended Documents:</span>
+                                <div class="flex flex-col gap-2">
+                                    ${recommendedDocs.map(doc => `
+                                    <span class="citation-chip w-fit cursor-pointer" onclick="app.viewer.open('${doc.id}')">
+                                        <span class="text-[9px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded uppercase mr-1">[${doc.type}]</span> 
+                                        ${doc.title}
+                                    </span>`).join('')}
+                                </div>
+                            </div>`;
+                        }
+
                         processedText += `
                         <details class="text-[10px] text-gray-500 bg-dark-900/50 border border-white/5 rounded p-2 mt-3 cursor-pointer">
                             <summary class="font-medium hover:text-gray-300 select-none flex items-center gap-1 outline-none">
