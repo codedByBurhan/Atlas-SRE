@@ -857,8 +857,14 @@
                 this.chat.appendWelcomeMessage();
                 
                 if (STATE.documents.length === 0) {
-                    const demoBanner = document.getElementById('demo-banner');
-                    if (demoBanner) demoBanner.classList.remove('hidden');
+                    const demoLoaded = localStorage.getItem('atlas_demo_loaded');
+                    if (!demoLoaded) {
+                        localStorage.setItem('atlas_demo_loaded', 'true');
+                        this.demo.load();
+                    } else {
+                        const demoBanner = document.getElementById('demo-banner');
+                        if (demoBanner) demoBanner.classList.remove('hidden');
+                    }
                 }
 
                 marked.setOptions({
@@ -1450,7 +1456,10 @@
                     if (viewerContent) viewerContent.innerHTML = '';
                     if (this.observer) this.observer.disconnect();
 
-                    if (doc.pdfData && canvasContainer && pdfToolbar && scrollIndicator && floatingPage && textContainer) {
+                    const isMobile = window.innerWidth < 768;
+                    const usePdfCanvas = doc.pdfData && !isMobile;
+
+                    if (usePdfCanvas && canvasContainer && pdfToolbar && scrollIndicator && floatingPage && textContainer) {
                         // Real PDF Render Mode (Continuous Scroll)
                         pdfToolbar.classList.remove('hidden');
                         scrollIndicator.classList.remove('hidden');
@@ -1764,15 +1773,15 @@
                     let progress = 0;
                     app.ui.setUploadProgress(progress, "Initializing embedded database...");
 
-                    setTimeout(() => {
-                        demoDocuments.forEach((doc) => {
+                    setTimeout(async () => {
+                        for (const doc of demoDocuments) {
                             if (!STATE.documents.some(d => d.id === doc.id)) {
                                 // For demo, we don't have pdfData buffer, passes null implicitly
-                                app.kb.processDocument(doc.title, doc.category, doc.content, doc.id);
+                                await app.kb.processDocument(doc.title, doc.category, doc.content, doc.id);
                             }
                             progress += (100 / demoDocuments.length);
                             app.ui.setUploadProgress(progress, `Indexing: ${doc.title}`);
-                        });
+                        }
 
                         app.ui.setUploadProgress(100, "Demo Data Ready");
                         app.ui.showToast("Knowledge Base hydrated successfully.", "success");
@@ -1808,6 +1817,7 @@
                             
                             // Chunking Per Page logic
                             for (let p = 1; p <= pdf.numPages; p++) {
+                                if (p % 3 === 0) await new Promise(r => setTimeout(r, 0));
                                 app.ui.setUploadProgress(10 + ((p/pdf.numPages)*40), `Parsing page ${p}...`);
                                 const page = await pdf.getPage(p);
                                 const textContent = await page.getTextContent();
@@ -1867,7 +1877,7 @@
                     if (fileInput) fileInput.value = "";
                 },
 
-                processDocument(title, category, content, id, pdfData = null) {
+                async processDocument(title, category, content, id, pdfData = null) {
                     if (!title || !content) return;
 
                     // 1. Clean Text: normalize newlines and extra spaces
@@ -1882,6 +1892,7 @@
                     let currentPage = 1;
                     
                     for (let i = 0; i < words.length; i += WORDS_PER_PSEUDO_PAGE) {
+                        if (currentPage % 3 === 0) await new Promise(r => setTimeout(r, 0));
                         const pageWords = words.slice(i, i + WORDS_PER_PSEUDO_PAGE);
                         
                         // Chunk within the pseudo-page
@@ -2033,7 +2044,7 @@
                 search(query) {
                     if(STATE.chunks.length === 0) return [];
 
-                    const stopWords = new Set(["what", "when", "where", "which", "who", "why", "how", "are", "you", "the", "and", "for", "with", "this", "that", "from", "does", "can", "could", "would", "should", "about", "into", "over", "after", "then"]);
+                    const stopWords = new Set(["what", "when", "where", "which", "who", "why", "how", "are", "you", "the", "and", "for", "with", "this", "that", "from", "does", "can", "could", "would", "should", "about", "into", "over", "after", "then", "is", "it", "to", "be", "an", "was", "were", "has", "have", "been", "they", "their", "just", "like", "out", "your", "will"]);
                     const queryTerms = query.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
                     if(queryTerms.length === 0) return [];
 
