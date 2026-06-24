@@ -385,6 +385,9 @@
                         <i class="fa-solid fa-robot text-brand-400"></i> Incident Copilot
                     </h2>
                     <div class="flex gap-2">
+                        <button onclick="document.getElementById('chat-input').value = 'Based on the recent context and incidents, draft a highly structured SRE Blameless Postmortem (RCA) document.'; app.chat.handleSend();" class="glass-button text-xs px-3 py-1.5 rounded-md text-gray-400 hover:text-white flex items-center gap-2 focus:outline-none">
+                            <i class="fa-solid fa-file-signature"></i> Draft RCA
+                        </button>
                         <button onclick="app.chat.clearHistory()" class="glass-button text-xs px-3 py-1.5 rounded-md text-gray-400 hover:text-white flex items-center gap-2 focus:outline-none">
                             <i class="fa-solid fa-eraser"></i> Clear Chat
                         </button>
@@ -405,6 +408,11 @@
                             <span id="chat-loading-text">Analyzing context & generating response...</span>
                         </div>
 
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <button class="glass-button text-[10px] text-gray-300 px-3 py-1.5 rounded-full hover:text-white transition-colors" onclick="document.getElementById('chat-input').value = this.innerText; app.chat.handleSend();">Summarize the Cloudflare outage</button>
+                            <button class="glass-button text-[10px] text-gray-300 px-3 py-1.5 rounded-full hover:text-white transition-colors" onclick="document.getElementById('chat-input').value = this.innerText; app.chat.handleSend();">What are the 4 Golden Signals?</button>
+                            <button class="glass-button text-[10px] text-gray-300 px-3 py-1.5 rounded-full hover:text-white transition-colors" onclick="document.getElementById('chat-input').value = this.innerText; app.chat.handleSend();">Draft an RCA for the Stripe latency issue</button>
+                        </div>
                         <div class="relative flex items-end glass-panel rounded-xl shadow-xl border border-white/10 focus-within:border-brand-500/50 transition-colors bg-dark-800/90 z-10">
                             <textarea id="chat-input" rows="1" class="w-full bg-transparent text-gray-100 rounded-xl pl-4 pr-12 py-3.5 focus:outline-none resize-none placeholder-gray-400 text-sm max-h-[150px] overflow-y-auto" placeholder="Ask about recent incidents, root causes, or general system architecture..."></textarea>
                             <button id="chat-send" class="absolute right-2 bottom-2 w-9 h-9 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400">
@@ -1053,9 +1061,15 @@
                     // Optional: You could switch to chat here, but it's already the default visible view underneath
                 },
                 switchView(viewId) {
-                    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+                    document.querySelectorAll('.view-section').forEach(el => {
+                        el.classList.add('hidden');
+                        el.style.zIndex = '0';
+                    });
                     const targetView = document.getElementById(`view-${viewId}`);
-                    if(targetView) targetView.classList.remove('hidden');
+                    if(targetView) {
+                        targetView.classList.remove('hidden');
+                        targetView.style.zIndex = '10';
+                    }
                     
                     document.querySelectorAll('.nav-btn').forEach(btn => {
                         btn.classList.remove('bg-white/5', 'text-white');
@@ -2365,8 +2379,9 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
 
                         processedText += `
                         <details class="text-[10px] text-gray-500 bg-dark-900/50 border border-white/5 rounded p-2 mt-3 cursor-pointer">
-                            <summary class="font-medium hover:text-gray-300 select-none flex items-center gap-1 outline-none">
+                            <summary class="font-medium hover:text-gray-300 select-none flex items-center gap-1 outline-none w-full">
                                 <span>⚙️ RAG Transparency Log</span>
+                                <button onclick="navigator.clipboard.writeText(this.closest('details').querySelector('div').innerText); app.ui.showToast('Log copied to clipboard', 'success'); event.preventDefault();" class="ml-auto text-[9px] glass-button px-2 py-0.5 rounded text-gray-400 hover:text-white focus:outline-none">Copy</button>
                             </summary>
                             <div class="mt-2 font-mono space-y-1 pl-4 border-l border-white/10 ml-1">
                                 <div><span class="text-gray-400">Documents Consulted:</span> ${docsConsulted}</div>
