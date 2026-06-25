@@ -2233,7 +2233,8 @@ CRITICAL RULES:
 2. If the user's question is unrelated to the context, or the context lacks the answer, use your general knowledge to answer the question helpfully. Do NOT state that you are missing context if you can answer it generally.
 3. Be analytical, professional, and use Markdown for formatting.
 4. Before providing your final answer, write a brief, 1-sentence internal thought process inside <think></think> tags. Example: <think>I need to compare the Stripe incident with the Cloudflare incident to find commonalities.</think>
-5. If the user's query is explicitly asking about an incident, outage, failure, or root cause, you MUST format your entire response as an Incident Review Dashboard using exactly this template:
+5. CONTRADICTION DETECTION: You must actively compare the retrieved chunks. If chunk A makes a claim that contradicts chunk B (e.g., differing root causes, conflicting timelines), you MUST include a section titled '### ⚠️ Conflicting Evidence Detected'. Clearly state the contradiction and cite both sources.
+6. If the user's query is explicitly asking about an incident, outage, failure, or root cause, you MUST format your entire response as an Incident Review Dashboard using exactly this template:
 
 ### 🚨 Incident Investigation Summary
 
@@ -2245,7 +2246,7 @@ Root Cause:
 
 Resolution/Remediation:
 
-You MUST still append citations (e.g., [Citation: chunk_id]) to every claim within this dashboard structure.
+You MUST still append citations (e.g., [Citation: chunk_id]) to every claim within this dashboard structure. If a contradiction was detected, append the ### ⚠️ Conflicting Evidence Detected section below the dashboard.
 If the query is a general question (e.g., "What is Kubernetes?"), answer normally using standard paragraphs.`;
 
                             const validatedModel = sanitizeModel(CONFIG.model);
