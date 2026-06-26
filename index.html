@@ -146,68 +146,104 @@
     <div id="view-landing" class="fixed inset-0 z-[100] bg-dark-900 overflow-y-auto flex flex-col font-sans text-gray-200 transition-opacity duration-500">
         
         <!-- Navbar -->
-        <header class="w-full glass-panel border-b border-white/5 py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-400/30">
+        <header class="w-full glass-panel border-b border-white/5 py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl">
+            <div class="flex items-center gap-3 group cursor-pointer">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.5)] border border-brand-400/30 transition-transform group-hover:scale-110 duration-300">
                     <i class="fa-solid fa-shield-halved text-white text-sm"></i>
                 </div>
                 <div>
                     <h1 class="font-bold text-base tracking-tight text-white leading-none">Atlas SRE</h1>
                 </div>
             </div>
-            <button onclick="app.nav.enterWorkspace()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-brand-500/20 focus:outline-none focus:ring-2 focus:ring-brand-400">
+            <button onclick="app.nav.enterWorkspace()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] focus:outline-none focus:ring-2 focus:ring-brand-400 hover:-translate-y-0.5">
                 Enter Workspace
             </button>
         </header>
 
         <!-- Hero Section -->
-        <section class="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col items-center text-center">
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-8">
-                <i class="fa-solid fa-bolt"></i> Local First Incident Intelligence
+        <section class="w-full max-w-6xl mx-auto px-6 py-20 md:py-32 flex flex-col items-center text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-8 animate-fade-in shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                <i class="fa-solid fa-bolt text-brand-400"></i> Zero-Backend Client-Side RAG
             </div>
-            <h1 class="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6 leading-tight">
+            <h1 class="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 tracking-tight mb-6 leading-tight animate-fade-in" style="animation-delay: 0.1s;">
                 Operational Knowledge, <br class="hidden md:block" /> instantly accessible.
             </h1>
-            <p class="text-lg md:text-xl text-gray-400 max-w-3xl mb-10 leading-relaxed">
-                Atlas SRE is a specialized NotebookLM-style platform for Site Reliability Engineers. It unifies your postmortems, RCAs, and architecture diagrams into a single, queryable local intelligence workspace.
+            <p class="text-lg md:text-xl text-gray-400 max-w-3xl mb-10 leading-relaxed animate-fade-in" style="animation-delay: 0.2s;">
+                Atlas SRE is an AI-Powered Engineering Incident Intelligence System. It securely parses your postmortems and architecture docs directly in the browser, eliminating the need for centralized vector clouds.
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <button onclick="app.nav.enterWorkspace()" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3.5 rounded-lg text-base font-semibold transition-all shadow-xl shadow-brand-500/20 flex items-center justify-center gap-3">
+            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-fade-in" style="animation-delay: 0.3s;">
+                <button onclick="app.nav.enterWorkspace()" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3.5 rounded-lg text-base font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] hover:-translate-y-1 flex items-center justify-center gap-3">
                     Launch Incident Copilot <i class="fa-solid fa-arrow-right"></i>
                 </button>
-                <a href="#how-it-works" class="glass-button text-white px-8 py-3.5 rounded-lg text-base font-medium transition-all flex items-center justify-center gap-3 border border-white/10 hover:bg-white/5">
-                    See Architecture <i class="fa-solid fa-diagram-project"></i>
+                <a href="#how-it-works" class="glass-button text-white px-8 py-3.5 rounded-lg text-base font-medium transition-all duration-300 flex items-center justify-center gap-3 border border-white/10 hover:bg-white/10 hover:-translate-y-1">
+                    Explore Architecture <i class="fa-solid fa-diagram-project"></i>
                 </a>
             </div>
         </section>
 
         <!-- Mockup Interface Preview -->
-        <section class="w-full max-w-5xl mx-auto px-6 pb-20 md:pb-32 relative">
+        <section class="w-full max-w-5xl mx-auto px-6 pb-20 md:pb-32 relative animate-fade-in" style="animation-delay: 0.4s;">
             <div class="absolute inset-0 bg-brand-500/20 blur-[120px] rounded-full pointer-events-none opacity-50"></div>
-            <div class="glass-panel border border-white/10 rounded-2xl p-2 shadow-2xl relative z-10 overflow-hidden transform hover:scale-[1.01] transition-transform duration-500">
+            <div class="glass-panel border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden transform hover:scale-[1.01] transition-transform duration-500">
                 <div class="bg-dark-950 rounded-xl overflow-hidden flex flex-col h-[400px]">
-                    <!-- Fake header -->
-                    <div class="h-10 border-b border-white/5 flex items-center px-4 gap-2 bg-dark-900 shrink-0">
-                        <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
-                    </div>
-                    <!-- Fake UI -->
-                    <div class="flex-1 flex bg-dark-900/50">
-                        <div class="w-48 border-r border-white/5 p-4 flex flex-col gap-2">
-                            <div class="h-6 w-full bg-white/5 rounded"></div>
-                            <div class="h-6 w-3/4 bg-white/5 rounded"></div>
+                    <!-- Header -->
+                    <div class="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-dark-900 shrink-0">
+                        <div class="flex gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_5px_rgba(234,179,8,0.5)]"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/80 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div>
                         </div>
-                        <div class="flex-1 p-6 flex flex-col gap-4 relative">
-                            <div class="self-start max-w-[80%] bg-dark-800 border border-white/5 p-4 rounded-xl rounded-tl-none">
-                                <div class="h-4 w-48 bg-white/10 rounded mb-2"></div>
-                                <div class="h-3 w-64 bg-white/5 rounded mb-1"></div>
-                                <div class="h-3 w-56 bg-white/5 rounded"></div>
+                        <div class="text-xs text-gray-500 font-mono flex items-center gap-2">
+                            <i class="fa-solid fa-microchip text-brand-500"></i> Gemini 3.5 Flash/Pro Active
+                        </div>
+                    </div>
+                    <!-- UI Layout -->
+                    <div class="flex-1 flex bg-dark-900/50">
+                        <!-- Sidebar -->
+                        <div class="w-48 border-r border-white/5 p-4 flex flex-col gap-3 bg-dark-900/30">
+                            <div class="flex items-center gap-2 text-xs text-gray-400 mb-2 font-bold uppercase tracking-wide">
+                                <i class="fa-solid fa-book-open text-brand-400"></i> Knowledge Base
                             </div>
-                            <div class="self-end max-w-[80%] bg-brand-600/20 border border-brand-500/20 p-4 rounded-xl rounded-tr-none">
-                                <div class="h-4 w-32 bg-white/20 rounded mb-2"></div>
-                                <div class="h-3 w-56 bg-white/10 rounded mb-1"></div>
-                                <div class="h-3 w-40 bg-white/10 rounded"></div>
+                            <div class="flex items-center gap-2 text-xs text-gray-300 bg-white/5 p-2 rounded border border-white/5">
+                                <i class="fa-solid fa-file-pdf text-red-400"></i> 2024_Redis_Outage.pdf
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-gray-300 bg-white/5 p-2 rounded border border-white/5">
+                                <i class="fa-solid fa-file-pdf text-red-400"></i> API_Gateway_Architecture.pdf
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-gray-300 bg-white/5 p-2 rounded border border-white/5">
+                                <i class="fa-solid fa-file-pdf text-red-400"></i> Core_SLOs_Runbook.pdf
+                            </div>
+                        </div>
+                        <!-- Chat Area -->
+                        <div class="flex-1 p-6 flex flex-col gap-5 relative bg-[#0a0c10]">
+                            <!-- User Message -->
+                            <div class="self-start max-w-[85%] bg-dark-800 border border-white/5 p-4 rounded-xl rounded-tl-none shadow-md">
+                                <p class="text-sm text-gray-300">How do we mitigate a cache stampede based on the Redis incident?</p>
+                            </div>
+                            <!-- AI Response -->
+                            <div class="self-end max-w-[90%] bg-brand-900/20 border border-brand-500/20 p-5 rounded-xl rounded-tr-none shadow-lg relative mt-2">
+                                <!-- RAG Transparency Log -->
+                                <div class="absolute -top-3 right-4 bg-dark-900 border border-brand-500/30 text-[10px] text-brand-400 px-2 py-1 rounded-md flex items-center gap-2 shadow-sm font-mono">
+                                    <i class="fa-solid fa-chart-bar"></i> Retrieval Score: 0.94 | Chunks: 3
+                                </div>
+                                
+                                <p class="text-sm text-gray-200 leading-relaxed mt-2 mb-3">
+                                    Based on the <span class="font-semibold text-white">2024 Redis Outage Postmortem</span>, the primary mitigation strategy for a cache stampede involves implementing probabilistic early expiration and strict connection pooling limits.
+                                </p>
+                                
+                                <div class="bg-dark-950 p-3 rounded-lg border border-white/5 font-mono text-xs text-gray-400 mb-3">
+                                    > "To prevent simultaneous cache misses overwhelming the database, a jittered TTL strategy was deployed across all regional Redis clusters."
+                                </div>
+                                
+                                <!-- Citation Chips -->
+                                <div class="flex gap-2 mt-2 border-t border-white/10 pt-3">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] bg-brand-500/10 text-brand-300 border border-brand-500/20 px-2.5 py-1 rounded-md hover:bg-brand-500/20 transition-colors cursor-pointer font-semibold shadow-sm">
+                                        <i class="fa-solid fa-quote-right"></i> 2024_Redis_Outage.pdf (Pg 4)
+                                    </span>
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] bg-brand-500/10 text-brand-300 border border-brand-500/20 px-2.5 py-1 rounded-md hover:bg-brand-500/20 transition-colors cursor-pointer font-semibold shadow-sm">
+                                        <i class="fa-solid fa-quote-right"></i> Core_SLOs_Runbook.pdf (Pg 12)
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -216,101 +252,128 @@
         </section>
 
         <!-- How It Works (Architecture) -->
-        <section id="how-it-works" class="w-full bg-dark-950 border-t border-b border-white/5 py-24">
-            <div class="max-w-6xl mx-auto px-6">
+        <section id="how-it-works" class="w-full bg-dark-950 border-t border-b border-white/5 py-24 relative overflow-hidden">
+            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50"></div>
+            <div class="max-w-6xl mx-auto px-6 relative z-10">
                 <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold text-white mb-4">Strictly Local RAG Pipeline</h2>
-                    <p class="text-gray-400 max-w-2xl mx-auto">Atlas operates entirely within your browser to ensure security and zero latency for your most sensitive operational documentation.</p>
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">Strictly Local RAG Pipeline</h2>
+                    <p class="text-gray-400 max-w-2xl mx-auto text-lg">Atlas operates entirely within your browser using local TF-IDF overlap evaluation, ensuring absolute privacy for your sensitive infrastructure data.</p>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
                     <!-- Line connecting steps (desktop) -->
                     <div class="hidden md:block absolute top-1/2 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-brand-500/0 via-brand-500/50 to-brand-500/0 transform -translate-y-1/2"></div>
                     
-                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
-                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
-                            <i class="fa-solid fa-file-pdf"></i>
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900 transition-transform hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(99,102,241,0.2)] duration-300">
+                        <div class="w-14 h-14 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                            <i class="fa-solid fa-file-pdf text-xl"></i>
                         </div>
-                        <h3 class="font-bold text-white mb-2">1. Ingest</h3>
-                        <p class="text-sm text-gray-400">Drop your PDFs, RCAs, and diagrams directly into the secure workspace.</p>
+                        <h3 class="font-bold text-white mb-2 text-lg">1. Ingest</h3>
+                        <p class="text-sm text-gray-400">Drag & drop sensitive PDFs. Text layer extraction happens via PDF.js Web Workers locally.</p>
                     </div>
 
-                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
-                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
-                            <i class="fa-solid fa-gears"></i>
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900 transition-transform hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(99,102,241,0.2)] duration-300">
+                        <div class="w-14 h-14 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                            <i class="fa-solid fa-gears text-xl"></i>
                         </div>
-                        <h3 class="font-bold text-white mb-2">2. Index</h3>
-                        <p class="text-sm text-gray-400">Local TF-IDF lexical engine chunks and indexes text entirely client-side.</p>
+                        <h3 class="font-bold text-white mb-2 text-lg">2. Index</h3>
+                        <p class="text-sm text-gray-400">Local TF-IDF lexical engine chunks and mathematically indexes text entirely in-memory.</p>
                     </div>
 
-                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
-                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
-                            <i class="fa-solid fa-magnifying-glass"></i>
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900 transition-transform hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(99,102,241,0.2)] duration-300">
+                        <div class="w-14 h-14 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                            <i class="fa-solid fa-magnifying-glass text-xl"></i>
                         </div>
-                        <h3 class="font-bold text-white mb-2">3. Retrieve</h3>
-                        <p class="text-sm text-gray-400">Lightning-fast keyword overlap scoring fetches the most relevant context.</p>
+                        <h3 class="font-bold text-white mb-2 text-lg">3. Retrieve</h3>
+                        <p class="text-sm text-gray-400">Lightning-fast keyword overlap scoring fetches the most relevant context securely.</p>
                     </div>
 
-                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900">
-                        <div class="w-12 h-12 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-4 shadow-lg">
-                            <i class="fa-solid fa-robot"></i>
+                    <div class="relative glass-panel p-6 rounded-xl border border-white/10 flex flex-col items-center text-center z-10 bg-dark-900 transition-transform hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(99,102,241,0.2)] duration-300">
+                        <div class="w-14 h-14 bg-dark-800 border border-white/10 rounded-full flex items-center justify-center text-brand-400 mb-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                            <i class="fa-solid fa-robot text-xl"></i>
                         </div>
-                        <h3 class="font-bold text-white mb-2">4. Generate</h3>
-                        <p class="text-sm text-gray-400">Gemini synthesizes a cited response using only your provided context.</p>
+                        <h3 class="font-bold text-white mb-2 text-lg">4. Generate</h3>
+                        <p class="text-sm text-gray-400">Gemini 3.5 Flash/Pro synthesizes a cited response using only your provided context.</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Capabilities -->
-        <section class="w-full max-w-6xl mx-auto px-6 py-24">
-            <h2 class="text-3xl font-bold text-white mb-12 text-center">Core Capabilities</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section class="w-full max-w-7xl mx-auto px-6 py-24">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">Core Modules</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto text-lg">Everything you need to triage incidents and explore architecture, built right in.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 
-                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-colors">
-                    <div class="w-10 h-10 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center mb-6">
+                <!-- Card 1 -->
+                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-brand-500/40 hover:bg-white/[0.02] transition-all duration-300 group shadow-lg hover:shadow-[0_10px_40px_rgba(99,102,241,0.15)]">
+                    <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-brand-500/20">
                         <i class="fa-solid fa-bolt text-xl"></i>
                     </div>
                     <h3 class="text-xl font-bold text-white mb-3">AI Incident Investigator</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
-                        A specialized chat interface designed for querying complex operational history. Ask about recent incidents, root causes, or general system architecture, and receive direct answers.
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
+                        A specialized chat interface utilizing Gemini 3.5 Flash/Pro for context-aware synthesis. Ask about recent incidents, trigger instant macros like "Draft RCA", and monitor confidence via the RAG Transparency Log.
                     </p>
-                    <ul class="text-sm text-gray-300 space-y-2">
-                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Explicit Source Citations</li>
-                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Embedded Document Viewer</li>
-                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Configurable LLM Parameters</li>
+                    <ul class="text-sm text-gray-300 space-y-3 font-medium">
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-brand-500 mr-3 text-sm"></i> Interactive PDF Citation Chips</li>
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-brand-500 mr-3 text-sm"></i> RAG Transparency Log</li>
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-brand-500 mr-3 text-sm"></i> Live LLM Parameter Control</li>
                     </ul>
                 </div>
 
-                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-colors">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6">
+                <!-- Card 2 -->
+                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-indigo-500/40 hover:bg-white/[0.02] transition-all duration-300 group shadow-lg hover:shadow-[0_10px_40px_rgba(99,102,241,0.15)]">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-indigo-500/20">
                         <i class="fa-solid fa-file-lines text-xl"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-3">Local Knowledge Base</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
-                        Your private repository of documentation. Upload PDFs seamlessly, and let the local engine handle text extraction, chunking, and indexing without exposing sensitive data.
+                    <h3 class="text-xl font-bold text-white mb-3">Knowledge Base Management</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
+                        Drag-and-drop PDF ingestion with high-fidelity canvas rendering via PDF.js. Your documents stay local while live metrics track extracted chunks and total document count.
                     </p>
-                    <ul class="text-sm text-gray-300 space-y-2">
-                        <li><i class="fa-solid fa-check text-indigo-500 mr-2"></i> Preloaded SRE Demo Dataset</li>
-                        <li><i class="fa-solid fa-check text-indigo-500 mr-2"></i> Drag & Drop Ingestion</li>
-                        <li><i class="fa-solid fa-check text-indigo-500 mr-2"></i> Real-time Lexical Search</li>
+                    <ul class="text-sm text-gray-300 space-y-3 font-medium">
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-indigo-500 mr-3 text-sm"></i> 18-Doc Preloaded Demo Dataset</li>
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-indigo-500 mr-3 text-sm"></i> Real-Time Lexical Overlap Indexing</li>
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-indigo-500 mr-3 text-sm"></i> High-Fidelity Canvas Rendering</li>
                     </ul>
                 </div>
+
+                <!-- Card 3 -->
+                <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-purple-500/40 hover:bg-white/[0.02] transition-all duration-300 group shadow-lg hover:shadow-[0_10px_40px_rgba(168,85,247,0.15)]">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-purple-500/20">
+                        <i class="fa-solid fa-network-wired text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Service Explorer</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
+                        An automated operational dependency mapper that parses uploaded architecture documentation and visualizes relationships between critical services using an elegant ASCII-style tree topology.
+                    </p>
+                    <ul class="text-sm text-gray-300 space-y-3 font-medium">
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-purple-500 mr-3 text-sm"></i> Automated Dependency Mapping</li>
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-purple-500 mr-3 text-sm"></i> ASCII-Style Topology Trees</li>
+                        <li class="flex items-center"><i class="fa-solid fa-circle-check text-purple-500 mr-3 text-sm"></i> Architecture Document Parsing</li>
+                    </ul>
+                </div>
+
             </div>
         </section>
 
         <!-- Final CTA -->
-        <section class="w-full bg-gradient-to-t from-brand-900/20 to-transparent py-24 text-center px-6 mt-auto border-t border-white/5">
-            <h2 class="text-3xl font-bold text-white mb-6">Ready to query your infrastructure?</h2>
-            <p class="text-gray-400 mb-8 max-w-lg mx-auto">Enter the workspace to load the demo dataset or upload your own operational documentation.</p>
-            <button onclick="app.nav.enterWorkspace()" class="bg-white text-dark-950 px-8 py-3.5 rounded-lg text-base font-bold transition-all shadow-xl hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-white/30">
-                Enter Workspace
+        <section class="w-full bg-gradient-to-t from-brand-900/10 to-transparent py-24 text-center px-6 mt-auto border-t border-white/5">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-6 tracking-tight">Ready to query your infrastructure?</h2>
+            <p class="text-gray-400 mb-10 max-w-lg mx-auto text-lg">Enter the workspace to load the demo dataset or securely upload your own operational documentation.</p>
+            <button onclick="app.nav.enterWorkspace()" class="bg-white text-dark-950 px-10 py-4 rounded-xl text-lg font-bold transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] hover:bg-gray-100 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-white/40">
+                Launch Workspace Now
             </button>
         </section>
         
         <!-- Footer -->
-        <footer class="w-full py-6 text-center text-xs text-gray-600 border-t border-white/5">
-            <p>Atlas SRE. Built for incident intelligence.</p>
+        <footer class="w-full py-8 text-center border-t border-white/5 bg-dark-950 flex flex-col items-center justify-center gap-2">
+            <div class="flex items-center gap-2 text-gray-500 text-sm font-medium">
+                <i class="fa-solid fa-shield-halved text-brand-500"></i> Atlas SRE
+            </div>
+            <p class="text-xs text-gray-600 tracking-wide font-medium">Built by codedByBurhan</p>
         </footer>
     </div>
 
