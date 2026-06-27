@@ -13,7 +13,7 @@
 
 [Live Demo](#) <!-- Placeholder for [Live Demo Link] -->
 <br>
-![Atlas SRE Interface Placeholder](#) <!-- Placeholder for [Screenshot/GIF] -->
+![Atlas SRE Interface](./screenshot.png)
 
 [Features](#-core-modules--features) • [How it Works](#-technical-architecture) • [Evaluation Guide](#-step-by-step-evaluation-guide) • [Roadmap](#-blueprint-roadmap)
 
