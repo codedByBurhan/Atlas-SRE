@@ -388,7 +388,7 @@
             <button onclick="app.demo.load()" id="btn-load-demo-banner" class="px-4 py-1.5 bg-white text-brand-900 text-xs font-bold rounded hover:bg-brand-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-white/50">
                 Load Demo Knowledge Base
             </button>
-            <button onclick="document.getElementById('demo-banner').classList.add('hidden')" class="px-2 py-1.5 text-brand-200 hover:text-white transition-colors focus:outline-none">
+            <button onclick="document.getElementById('demo-banner').classList.add('hidden')" class="px-2 py-1.5 text-brand-200 hover:text-white transition-colors focus:outline-none" aria-label="Close demo banner">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -479,7 +479,7 @@
                         </div>
                         <div class="relative flex items-end glass-panel rounded-xl shadow-xl border border-white/10 focus-within:border-brand-500/50 transition-colors bg-dark-800/90 z-10">
                             <textarea id="chat-input" rows="1" class="w-full bg-transparent text-gray-100 rounded-xl pl-4 pr-12 py-3.5 focus:outline-none resize-none placeholder-gray-400 text-sm max-h-[150px] overflow-y-auto" placeholder="Ask about recent incidents, root causes, or general system architecture..."></textarea>
-                            <button id="chat-send" class="absolute right-2 bottom-2 w-9 h-9 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400">
+                            <button id="chat-send" aria-label="Send message" class="absolute right-2 bottom-2 w-9 h-9 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400">
                                 <i class="fa-solid fa-paper-plane text-sm"></i>
                             </button>
                         </div>
@@ -646,7 +646,7 @@
                     <button onclick="app.viewer.onNextPage()" class="w-8 h-8 rounded text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none" title="Next Page"><i class="fa-solid fa-chevron-down text-xs"></i></button>
                 </div>
                 
-                <button onclick="app.viewer.close()" class="w-10 h-10 rounded-lg text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-400 transition-colors focus:outline-none flex items-center justify-center border border-transparent hover:border-red-500/30">
+                <button onclick="app.viewer.close()" class="w-10 h-10 rounded-lg text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-400 transition-colors focus:outline-none flex items-center justify-center border border-transparent hover:border-red-500/30" aria-label="Close document viewer">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -802,6 +802,7 @@
 
         let kbSearchQuery = "";
         let kbCategoryFilter = "all";
+        let kbGenerationId = 0;
 
         // -----------------------------------------
         // 1. EMBEDDED DEMO DATASET (18 Documents)
@@ -1208,6 +1209,28 @@
                             app.kb.renderList();
                         });
                     }
+
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) {
+                        chatMessages.addEventListener('click', (e) => {
+                            const target = e.target.closest('[data-action]');
+                            if (!target) return;
+                            
+                            const action = target.getAttribute('data-action');
+                            if (action === 'open-chunk') {
+                                app.viewer.openFromChunk(target.getAttribute('data-chunk-id'));
+                            } else if (action === 'open-doc') {
+                                app.viewer.open(target.getAttribute('data-doc-id'));
+                            } else if (action === 'show-sources') {
+                                app.sources.show(parseInt(target.getAttribute('data-msg-index')));
+                            } else if (action === 'copy-log') {
+                                const logText = target.closest('details').querySelector('div').innerText;
+                                navigator.clipboard.writeText(logText);
+                                app.ui.showToast('Log copied to clipboard', 'success');
+                                e.preventDefault();
+                            }
+                        });
+                    }
                 },
 
                 showToast(message, type = 'info') {
@@ -1382,7 +1405,9 @@
             // --- Simple Local Storage (Persistence) ---
             storage: {
                 saveSettings() {
+                    // Note: Client-side obfuscation (btoa/atob) is not true security. This limits exposure over shoulder-surfing but is extractable by anyone with dev tools.
                     try {
+                        if (typeof window.localStorage === 'undefined') return;
                         localStorage.setItem('atlas_sre_settings', JSON.stringify({ 
                             API_KEY: API_KEY ? btoa(API_KEY.split('').reverse().join('')) : "", 
                             model: CONFIG.model,
@@ -1390,11 +1415,12 @@
                             temp: CONFIG.temperature 
                         }));
                     } catch (e) {
-                        console.error("Failed to save settings:", e);
+                        // Silently fail if localStorage is disabled/corrupted (e.g. privacy mode)
                     }
                 },
                 loadSettings() {
                     try {
+                        if (typeof window.localStorage === 'undefined') throw new Error("No localStorage");
                         const data = JSON.parse(localStorage.getItem('atlas_sre_settings'));
                         if (data) {
                             if (data.API_KEY) {
@@ -1420,7 +1446,7 @@
                             app.updateModeCheck();
                         }
                     } catch(e) {
-                        console.warn("No valid settings found in storage, using defaults.");
+                        // Suppress warnings as this is expected in incognito/strict-privacy modes
                         CONFIG.model = "gemini-3.5-flash";
                         app.updateModeCheck();
                     }
@@ -1540,7 +1566,8 @@
                     if (canvasContainer) canvasContainer.innerHTML = '';
                     const viewerContent = document.getElementById('viewer-content');
                     if (viewerContent) viewerContent.innerHTML = '';
-                    if (this.observer) this.observer.disconnect();
+                    if (this.observer) { this.observer.disconnect(); this.observer = null; }
+                    if (this.trackingObserver) { this.trackingObserver.disconnect(); this.trackingObserver = null; }
 
                     const isMobile = window.innerWidth < 768;
                     const usePdfCanvas = doc.pdfData && !isMobile;
@@ -1673,7 +1700,7 @@
                     document.querySelectorAll('.pdf-page-container').forEach(el => this.observer.observe(el));
 
                     // Secondary observer just to track current visible page for header
-                    const trackingObserver = new IntersectionObserver((entries) => {
+                    this.trackingObserver = new IntersectionObserver((entries) => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
                                 const pageNum = entry.target.dataset.page;
@@ -1684,7 +1711,7 @@
                         });
                     }, { root: viewerBody, threshold: 0.5 });
 
-                    document.querySelectorAll('.pdf-page-container').forEach(el => trackingObserver.observe(el));
+                    document.querySelectorAll('.pdf-page-container').forEach(el => this.trackingObserver.observe(el));
                 },
 
                 async renderPdfPage(pageDiv, pageNum) {
@@ -1825,6 +1852,9 @@
                     const docViewer = document.getElementById('doc-viewer');
                     const backdrop = document.getElementById('doc-viewer-backdrop');
                     
+                    if (this.observer) { this.observer.disconnect(); this.observer = null; }
+                    if (this.trackingObserver) { this.trackingObserver.disconnect(); this.trackingObserver = null; }
+                    
                     if (docViewer) docViewer.classList.add('translate-y-[120%]');
                     if (backdrop) backdrop.classList.add('opacity-0');
                     
@@ -1832,7 +1862,10 @@
                         if (backdrop) backdrop.classList.add('hidden');
                         const scrollContainer = document.getElementById('pdf-scroll-container');
                         if (scrollContainer) scrollContainer.innerHTML = ''; // free memory
-                        this.pdfInstance = null;
+                        if (this.pdfInstance) {
+                            this.pdfInstance.destroy();
+                            this.pdfInstance = null;
+                        }
                     }, 300);
                 }
             },
@@ -1902,7 +1935,9 @@
                             let chunkObjects = [];
                             
                             // Chunking Per Page logic
+                            const currentGen = kbGenerationId;
                             for (let p = 1; p <= pdf.numPages; p++) {
+                                if (currentGen !== kbGenerationId) return; // Abort if DB cleared
                                 if (p % 3 === 0) await new Promise(r => setTimeout(r, 0));
                                 app.ui.setUploadProgress(10 + ((p/pdf.numPages)*40), `Parsing page ${p}...`);
                                 const page = await pdf.getPage(p);
@@ -1976,8 +2011,9 @@
                     const chunkObjects = [];
                     
                     let currentPage = 1;
-                    
+                    const currentGen = kbGenerationId;
                     for (let i = 0; i < words.length; i += WORDS_PER_PSEUDO_PAGE) {
+                        if (currentGen !== kbGenerationId) return; // Abort if DB cleared
                         if (currentPage % 3 === 0) await new Promise(r => setTimeout(r, 0));
                         const pageWords = words.slice(i, i + WORDS_PER_PSEUDO_PAGE);
                         
@@ -2033,6 +2069,7 @@
                         "Clear Database",
                         "Are you sure you want to completely clear the knowledge base and chat history? This cannot be undone.",
                         () => {
+                            kbGenerationId++; // Abort ongoing chunking loops
                             STATE.documents = [];
                             STATE.chunks = [];
                             STATE.chatHistory = [];
@@ -2213,7 +2250,9 @@
                     
                     searchResults.forEach((res, index) => {
                         const snippet = res.chunk.text.length > 500 ? res.chunk.text.substring(0, 500) + "..." : res.chunk.text;
-                        responseText += `**${index + 1}. ${res.chunk.docTitle}** (Page ${res.chunk.pageNum})\n`;
+                        const title = res.chunk.docTitle || "Unknown Document";
+                        const page = res.chunk.pageNum || 1;
+                        responseText += `**${index + 1}. ${title}** (Page ${page})\n`;
                         responseText += `> ${snippet} [Citation: ${res.chunk.id}]\n\n`;
                     });
 
@@ -2281,7 +2320,7 @@
                                     contextBlock += `Text: <document_content>${res.chunk.text}</document_content>\n`;
                                     
                                     const parentDoc = STATE.documents.find(d => d.title === res.chunk.docTitle);
-                                    if (parentDoc && parentDoc.metadata) {
+                                    if (parentDoc?.metadata) {
                                         contextBlock += `Metadata:\n`;
                                         contextBlock += `- Document Type: ${parentDoc.metadata.documentType || 'Unknown'}\n`;
                                         contextBlock += `- Services: ${parentDoc.metadata.services ? parentDoc.metadata.services.join(', ') : 'Unknown'}\n`;
@@ -2385,7 +2424,7 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                     }
 
                     const data = await response.json();
-                    if (!data.candidates || !data.candidates[0].content) {
+                    if (!data || !data.candidates || !data.candidates[0] || !data.candidates[0].content) {
                         throw new Error("Invalid response format from Gemini API.");
                     }
 
@@ -2422,7 +2461,7 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                                 uniqueSources.push(info);
                             }
                             const label = info ? `${info.title.substring(0, 20)} • Pg ${info.pageNum}` : chunkId;
-                            return `<span class="citation-chip cursor-pointer" title="Jump to Source" onclick="app.viewer.openFromChunk('${chunkId}')"><i class="fa-solid fa-file-text"></i> ${label}</span>`;
+                            return `<span class="citation-chip cursor-pointer" title="Jump to Source" data-action="open-chunk" data-chunk-id="${chunkId}"><i class="fa-solid fa-file-text"></i> ${label}</span>`;
                         });
 
                         STATE.chatHistory.push({ role, text: rawText, retrievedInfo });
@@ -2430,10 +2469,10 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                         
                         processedText += `\n\n<div class="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-2 items-center">
                             <span class="text-xs text-gray-400 mr-2 font-medium">Sources:</span>
-                            ${uniqueSources.map(source => `<span class="citation-chip cursor-pointer inline-flex items-center gap-1.5" title="Jump to Source" onclick="app.viewer.openFromChunk('${source.id}')">
+                            ${uniqueSources.map(source => `<span class="citation-chip cursor-pointer inline-flex items-center gap-1.5" title="Jump to Source" data-action="open-chunk" data-chunk-id="${source.id}">
                                 <i class="fa-solid fa-book-open"></i> ${source.title.substring(0,25)}... <span class="opacity-50">|</span> Pg ${source.pageNum}
                             </span>`).join('')}
-                            <button onclick="app.sources.show(${msgIndex})" class="ml-auto text-xs glass-button px-3 py-1 rounded text-brand-300 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass-plus"></i> Show Evidence</button>
+                            <button data-action="show-sources" data-msg-index="${msgIndex}" class="ml-auto text-xs glass-button px-3 py-1 rounded text-brand-300 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass-plus"></i> Show Evidence</button>
                         </div>`;
 
                         const docsConsulted = new Set(retrievedInfo.map(info => info.title)).size;
@@ -2465,7 +2504,7 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                                 <span class="text-xs text-gray-400 font-medium block mb-2">Recommended Documents:</span>
                                 <div class="flex flex-col gap-2">
                                     ${recommendedDocs.map(doc => `
-                                    <span class="citation-chip w-fit cursor-pointer" onclick="app.viewer.open('${doc.id}')">
+                                    <span class="citation-chip w-fit cursor-pointer" data-action="open-doc" data-doc-id="${doc.id}">
                                         <span class="text-[9px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded uppercase mr-1">[${doc.type}]</span> 
                                         ${doc.title}
                                     </span>`).join('')}
@@ -2477,7 +2516,7 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                         <details class="text-[10px] text-gray-500 bg-dark-900/50 border border-white/5 rounded p-2 mt-3 cursor-pointer">
                             <summary class="font-medium hover:text-gray-300 select-none flex items-center gap-1 outline-none w-full">
                                 <span>⚙️ RAG Transparency Log</span>
-                                <button onclick="navigator.clipboard.writeText(this.closest('details').querySelector('div').innerText); app.ui.showToast('Log copied to clipboard', 'success'); event.preventDefault();" class="ml-auto text-[9px] glass-button px-2 py-0.5 rounded text-gray-400 hover:text-white focus:outline-none">Copy</button>
+                                <button data-action="copy-log" class="ml-auto text-[9px] glass-button px-2 py-0.5 rounded text-gray-400 hover:text-white focus:outline-none" aria-label="Copy RAG Transparency Log">Copy</button>
                             </summary>
                             <div class="mt-2 font-mono space-y-1 pl-4 border-l border-white/10 ml-1">
                                 <div><span class="text-gray-400">Documents Consulted:</span> ${docsConsulted}</div>
@@ -2491,7 +2530,7 @@ If the query is a general question (e.g., "What is Kubernetes?"), answer normall
                         STATE.chatHistory.push({ role, text: rawText, retrievedInfo });
                     }
 
-                    const cleanHTML = DOMPurify.sanitize(marked.parse(processedText), { ADD_ATTR: ['title', 'onclick'] });
+                    const cleanHTML = DOMPurify.sanitize(marked.parse(processedText), { ADD_ATTR: ['title', 'data-action', 'data-chunk-id', 'data-msg-index', 'data-doc-id', 'aria-label'] });
 
                     const bubbleClass = role === 'user' 
                         ? 'bg-gradient-to-br from-brand-600 to-indigo-800 text-white rounded-2xl rounded-tr-sm' 
